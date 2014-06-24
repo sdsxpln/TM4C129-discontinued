@@ -35,9 +35,17 @@
  *
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/rom.h"
+ 
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "semphr.h"
 
 /* IO library includes. */
@@ -55,13 +63,13 @@ is already included from FreeRTOS_IO_BSP.h. */
 /* The TEMT bit in the line status register. */
 #define uartTX_BUSY_MASK			( 1UL << 6UL )
 
-    
+extern uint32_t g_ui32SysClock;   
 /*-----------------------------------------------------------*/
 
 /*
  * Write as many characters as possible from *ppucBuffer into the UART FIFO.
  */
-static inline size_t prvFillFifoFromBuffer( LPC_UART_TypeDef * const pxUART, uint8_t **ppucBuffer, const size_t xTotalBytes );
+static inline size_t prvFillFifoFromBuffer( const uint32_t pxUART, uint8_t **ppucBuffer, const size_t xTotalBytes );
 
 /*-----------------------------------------------------------*/
 
@@ -70,24 +78,17 @@ supported UART ports. */
 static Transfer_Control_t *pxTxTransferControlStructs[ boardNUM_UARTS ] = { NULL };
 static Transfer_Control_t *pxRxTransferControlStructs[ boardNUM_UARTS ] = { NULL };
 
-/* Stores the IRQ numbers of the supported UART ports. */
-static const IRQn_Type xIRQ[] = { UART0_IRQn, UART1_IRQn, UART2_IRQn, UART3_IRQn };
-
 /*-----------------------------------------------------------*/
-
+static const int8_t xINT_UARTn[] = { INT_UART0, INT_UART1, INT_UART2, INT_UART3, INT_UART4, INT_UART5, INT_UART6, INT_UART7 };
+    
 // Initialize vanilla UART and set pointers for write, read and ioctl functions.
 portBASE_TYPE FreeRTOS_UART_open( Peripheral_Control_t * const pxPeripheralControl )
-{   
-    // uart config structs
-    PINSEL_CFG_Type xPinConfig;
-    UART_CFG_Type xUARTConfig;
-    UART_FIFO_CFG_Type xUARTFIFOConfig;
-    LPC_UART_TypeDef * const pxUART = ( LPC_UART_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( pxPeripheralControl );
-    
+{       
     // FreeRTOS variables
     portBASE_TYPE xReturn;
     const uint8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( pxPeripheralControl );
-
+    const uint32_t pxUART = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheralControl ) );
+    
 	// Sanity check the peripheral number.
 	if ( cPeripheralNumber < boardNUM_UARTS ) {
         
@@ -100,15 +101,16 @@ portBASE_TYPE FreeRTOS_UART_open( Peripheral_Control_t * const pxPeripheralContr
             
 			//boardCONFIGURE_UART_PINS( cPeripheralNumber, xPinConfig );
             //GPIO allready handled by pinout();
-            ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-
+            ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);              
+            
 			// Set up the default UART configuration.             
-            ROM_UARTConfigSetExpClk(UART0_BASE, ui32SysClock, 115200,
-                (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                UART_CONFIG_PAR_NONE));            
+            ROM_UARTConfigSetExpClk( pxUART, 
+                                     g_ui32SysClock, 
+                                     boardDEFAULT_UART_BAUD, 
+            (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE) );
             
 			// Enable the FIFO.
-            UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX2_8, UART_FIFO_RX2_8);
+            ROM_UARTFIFOLevelSet(pxUART, UART_FIFO_TX2_8, UART_FIFO_RX2_8);
 
 			// Enable Tx.
 			//UART_TxCmd( pxUART, ENABLE );
@@ -130,8 +132,9 @@ size_t FreeRTOS_UART_write( Peripheral_Descriptor_t const pxPeripheral, const vo
 {
     Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
     size_t xReturn = 0U;
-    LPC_UART_TypeDef * const pxUART = ( LPC_UART_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    const uint32_t pxUART = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
     int8_t cPeripheralNumber;
+    const unsigned char* pBuffer = (const unsigned char*)pvBuffer;
 
 	if( diGET_TX_TRANSFER_STRUCT( pxPeripheralControl ) == NULL )
 	{
@@ -141,11 +144,15 @@ size_t FreeRTOS_UART_write( Peripheral_Descriptor_t const pxPeripheral, const vo
 			the	task, so just send out by polling.  No semaphore or queue is
 			used here, so the application must ensure only one task attempts to
 			make a polling write at a time. */
-			xReturn = UART_Send( pxUART, ( uint8_t * ) pvBuffer, ( size_t ) xBytes, BLOCKING );
+            for( xReturn = 0; xReturn < xBytes; xReturn++ )
+            {                               
+                ROM_UARTCharPut( pxUART, *pBuffer );
+                pBuffer++;
+            }
 
 			/* The UART is set to polling mode, so may as well poll the busy bit
-			too.  Change to interrupt driven mode to avoid wasting CPU time here. */
-			while( UART_CheckBusy( pxUART ) != RESET );
+			too. Change to interrupt driven mode to avoid wasting CPU time here. */
+			while( ROM_UARTBusy( pxUART ) );
 		}
 		#endif /* ioconfigUSE_UART_POLLED_TX */
 	}
@@ -178,8 +185,8 @@ size_t FreeRTOS_UART_write( Peripheral_Descriptor_t const pxPeripheral, const vo
 					ioutilsINITIATE_ZERO_COPY_TX
 						(
 							pxPeripheralControl,
-							UART_TxCmd( pxUART, DISABLE ),	/* Disable peripheral function. */
-							UART_TxCmd( pxUART, ENABLE ), 	/* Enable peripheral function. */
+							ROM_UARTDisable( pxUART ),	/* Disable peripheral function. */
+							ROM_UARTEnable( pxUART ), 	/* Enable peripheral function. */
 							prvFillFifoFromBuffer( pxUART, ( uint8_t ** ) &( pvBuffer ), xBytes ), /* Write to peripheral function. */
 							pvBuffer, 						/* Data source. */
 							xReturn							/* Number of bytes to be written. This will get set to zero if the write mutex is not held. */
@@ -202,10 +209,14 @@ size_t FreeRTOS_UART_write( Peripheral_Descriptor_t const pxPeripheral, const vo
 					ioutilsBLOCKING_SEND_CHARS_TO_TX_QUEUE
 						(
 							pxPeripheralControl,
-							( pxUART->LSR & uartTX_BUSY_MASK ) == uartTX_BUSY_MASK,  /* Peripheral busy condition. */
-							pxUART->THR = ucChar,				/* Peripheral write function. */
-							( ( uint8_t * ) pvBuffer ),			/* Data source. */
-							xBytes, 							/* Number of bytes to be written. */
+                            /* Peripheral busy condition. */
+							ROM_UARTBusy( pxUART ),
+                            /* Peripheral write function. */
+                            ROM_UARTCharPut( pxUART, ucChar),
+                            /* Data source. */
+							( ( uint8_t * ) pvBuffer ),
+                            /* Number of bytes to be written. */
+							xBytes,
 							xReturn );
 				}
 				#endif /* ioconfigUSE_UART_TX_CHAR_QUEUE */
@@ -238,25 +249,27 @@ FreeRTOS_UART_read( Peripheral_Descriptor_t const pxPeripheral, void * const pvB
 {
     Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
     size_t xReturn = 0U;
-    LPC_UART_TypeDef * const pxUART = ( LPC_UART_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    const uint32_t pxUART = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    unsigned char* pBuffer = (unsigned char*)pvBuffer;
 
 	if( diGET_RX_TRANSFER_STRUCT( pxPeripheralControl ) == NULL ) {
         
 		#if ioconfigUSE_UART_POLLED_RX == 1
 		{
-			/* No FreeRTOS objects exist to allow reception without blocking
-			the task, so just receive by polling.  No semaphore or queue is
-			used here, so the application must ensure only one task attempts
-			to make a polling read at a time. */
-			xReturn = UART_Receive( pxUART, pvBuffer, xBytes, NONE_BLOCKING );
+			/* No FreeRTOS objects exist to allow transmission without blocking
+			the	task, so just send out by polling.  No semaphore or queue is
+			used here, so the application must ensure only one task attempts to
+			make a polling write at a time. */
+            for( xReturn = 0U; xReturn < xBytes; xReturn++ )
+            {                           
+                *pBuffer = ROM_UARTCharGet( pxUART );
+                pBuffer++;
+            }
 		}
 		#endif /* ioconfigUSE_UART_POLLED_RX */
         
 	} else {
         
-		/* Sanity check the array index. */
-		configASSERT( diGET_PERIPHERAL_NUMBER( pxPeripheralControl ) < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
-
 		switch( diGET_RX_TRANSFER_TYPE( pxPeripheralControl ) )
 		{
 			case ioctlUSE_CIRCULAR_BUFFER_RX :
@@ -271,12 +284,17 @@ FreeRTOS_UART_read( Peripheral_Descriptor_t const pxPeripheral, void * const pvB
 					receive bytes. */
 					ioutilsRECEIVE_CHARS_FROM_CIRCULAR_BUFFER
 						(
-							pxPeripheralControl,
-							UART_IntConfig( pxUART, UART_INTCFG_RBR, DISABLE ),	/* Disable peripheral. */
-							UART_IntConfig( pxUART, UART_INTCFG_RBR, ENABLE ), 	/* Enable peripheral. */
-							( ( uint8_t * ) pvBuffer ),							/* Data destination. */
-							xBytes,												/* Bytes to read. */
-							xReturn												/* Number of bytes read. */
+							pxPeripheralControl,                    
+                            /* Disable peripheral. buffer interrupt DMA? */
+							UARTIntDisable( pxUART, UART_INT_RX ),
+                            /* Enable peripheral. */
+							UARTIntEnable( pxUART, UART_INT_RX ),
+                            /* Data destination. */
+							( ( uint8_t * ) pvBuffer ),	
+                            /* Bytes to read. */
+							xBytes,								
+                            /* Number of bytes read. */
+							xReturn								
 						);
 				}
 				#endif /* ioconfigUSE_UART_CIRCULAR_BUFFER_RX */
@@ -319,7 +337,7 @@ FreeRTOS_UART_read( Peripheral_Descriptor_t const pxPeripheral, void * const pvB
 }
 /*-----------------------------------------------------------*/
 
-static inline size_t prvFillFifoFromBuffer( LPC_UART_TypeDef * const pxUART, uint8_t **ppucBuffer, const size_t xTotalBytes )
+static inline size_t prvFillFifoFromBuffer( const uint32_t pxUART, uint8_t **ppucBuffer, const size_t xTotalBytes )
 {
 size_t xBytesSent = 0U;
 
@@ -327,7 +345,7 @@ size_t xBytesSent = 0U;
 	exclusion is already taken care of by the fact that a task must first
 	obtain a semaphore before initiating a zero copy transfer.  The semaphore
 	is part of the zero copy structure, not part of the application. */
-	while( ( pxUART->FIFOLVL & uartTX_FIFO_LEVEL_MASK ) != uartTX_FIFO_LEVEL_MASK )
+	while( UARTSpaceAvail( pxUART ) )
 	{
 		if( xBytesSent >= xTotalBytes )
 		{
@@ -335,7 +353,7 @@ size_t xBytesSent = 0U;
 		}
 		else
 		{
-			pxUART->THR = **ppucBuffer;
+            UARTCharPut( pxUART, **ppucBuffer);
 			( *ppucBuffer )++;
 			xBytesSent++;
 		}
@@ -352,10 +370,8 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral,
     const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
     uint32_t ulValue = ( uint32_t ) pvValue;
     portBASE_TYPE xReturn = pdPASS;
-
-	/* Sanity check the array index. */
-	configASSERT( cPeripheralNumber < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
-
+    const uint32_t pxUART = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    
 	taskENTER_CRITICAL();
 	{
 		switch( ulRequest )
@@ -363,19 +379,18 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral,
 			case ioctlUSE_INTERRUPTS :
 
 				if( ulValue == pdFALSE )
-				{
-					//NVIC_DisableIRQ( xIRQ[ cPeripheralNumber ] );
-                    ROM_IntDisable(INT_UART0);
+				{                                       
+                    ROM_IntDisable( xINT_UARTn[ cPeripheralNumber ] );
 				}
 				else
 				{
 					// Enable the Rx and Tx interrupt.					
-                    ROM_UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_RT);
+                    ROM_UARTIntEnable(pxUART, UART_INT_RX | UART_INT_TX );
 
 					/* Enable the interrupt and set its priority to the minimum
 					interrupt priority.  A separate command can be issued to raise
 					the priority if desired. */
-                    ROM_IntEnable(INT_UART0);
+                    ROM_IntEnable( xINT_UARTn[ cPeripheralNumber ] );
                     // interrupt priority?
 					//NVIC_SetPriority( xIRQ[ cPeripheralNumber ], configMIN_LIBRARY_INTERRUPT_PRIORITY );
 
@@ -391,7 +406,7 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral,
 			case ioctlSET_SPEED :
 
 				/* Set new baudrate. */
-                 ROM_UARTConfigSetExpClk(UART0_BASE, ui32SysClock, ulValue,
+                 ROM_UARTConfigSetExpClk(pxUART, g_ui32SysClock, ulValue,
                             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                              UART_CONFIG_PAR_NONE));
 				break;
@@ -430,8 +445,8 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral,
 
 void UARTIntHandler( void )
 {
-uint32_t ulInterruptSource, ulReceived;
-const uint32_t ulRxInterrupts = ( UART_IIR_INTID_RDA | UART_IIR_INTID_CTI );
+uint32_t ulInterruptSource, ulReceived = 0;
+const uint32_t ulRxInterrupts = ( UART_INT_RX | UART_INT_RT );
 portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 const unsigned portBASE_TYPE uxUARTNumber = 0UL;
 Transfer_Control_t *pxTransferStruct;
@@ -490,7 +505,7 @@ Transfer_Control_t *pxTransferStruct;
 		}
 	}
 
-	if( ( ulInterruptSource & UART_IIR_INTID_THRE ) != 0UL )
+	if( UARTCharsAvail( UART0_BASE ) == false )
 	{
 		/* The transmit holding register is empty.  Is there any more data
 		to send? */

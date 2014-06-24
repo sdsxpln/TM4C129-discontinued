@@ -39,6 +39,10 @@
 #define FREERTOS_BASE_BOARD_TM4C129_H
 
 /* Header files for all the driver libraries that can be used with this BSP. */
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
 #include "driverlib/uart.h"
 //#include "driverlib/ssi.h"
 //#include "driverlib/i2c.h"
@@ -57,10 +61,10 @@
  ******************************************************************************/
 #define boardAVAILABLE_DEVICES_LIST												\
 {																				\
-	{ ( const int8_t * const ) "/UART3/", eUART_TYPE, ( void * ) LPC_UART3 }	\
-	//{ ( const int8_t * const ) "/SSP1/", eSSP_TYPE, ( void * ) LPC_SSP1 },		\
-	//{ ( const int8_t * const ) "/I2C2/", eI2C_TYPE, ( void * ) LPC_I2C2 }		\
+	{ ( const int8_t * const ) "/UART0/", eUART_TYPE, ( uint32_t ) UART0_BASE }	\
 }
+//{ ( const int8_t * const ) "/SSP1/", eSSP_TYPE, ( void * ) LPC_SSP1 },
+//{ ( const int8_t * const ) "/I2C2/", eI2C_TYPE, ( void * ) LPC_I2C2 }
 
 /*******************************************************************************
  * Map the FreeRTOS+IO interface to the TM4C129 specific functions.
@@ -76,78 +80,6 @@ portBASE_TYPE vFreeRTOS_tm4c129_PopulateFunctionPointers( const Peripheral_Types
 #define boardNUM_UARTS				8 /* UART0 to UART7. */
 //#define boardNUM_I2CS				3 /* I2C0 to I2C2. */
 
-
-/*******************************************************************************
- * Configure port UART port pins to be correct for the wiring of the
- * base board.
- ******************************************************************************/
-#define boardCONFIGURE_UART_PINS( cPeripheralNumber, xPinConfig )					\
-	switch( ( cPeripheralNumber ) )													\
-	{																				\
-		case 3	:	( xPinConfig ).Funcnum = 2;										\
-					( xPinConfig ).Pinnum = 0;										\
-					( xPinConfig ).Portnum = 0;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					( xPinConfig ).Pinnum = 1;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					break;															\
-																					\
-		default	:	/* These are either not implemented yet, or not available		\
-					on this board.  Force an assert failure. */						\
-					configASSERT( ( cPeripheralNumber ) - ( cPeripheralNumber ) );	\
-					break;															\
-	}
-
-/*******************************************************************************
- * Configure port SSP port pins to be correct for the wiring of the
- *  base board.
- ******************************************************************************/
-#define boardCONFIGURE_SSP_PINS( cPeripheralNumber, xPinConfig )					\
-	switch( ( cPeripheralNumber ) )													\
-	{																				\
-		case 1	:	( xPinConfig ).Funcnum = 2;										\
-					( xPinConfig ).OpenDrain = 0;									\
-					( xPinConfig ).Pinmode = 0;										\
-					( xPinConfig ).Portnum = 0;										\
-					( xPinConfig ).Pinnum = 7;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					( xPinConfig ).Pinnum = 8;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					( xPinConfig ).Pinnum = 9;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					( xPinConfig ).Funcnum = 0;										\
-					( xPinConfig ).Portnum = 2;										\
-					( xPinConfig ).Pinnum = 2;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					break;															\
-																					\
-		default	:	/* These are either not implemented yet, or not available		\
-					on this board.  Force an assert failure. */						\
-					configASSERT( ( cPeripheralNumber ) - ( cPeripheralNumber ) );	\
-					break;															\
-	}
-
-/*******************************************************************************
- * Configure port I2C port pins to be correct for the wiring of the
- * base board.
- ******************************************************************************/
-#define boardCONFIGURE_I2C_PINS( cPeripheralNumber, xPinConfig )					\
-	switch( ( cPeripheralNumber ) )													\
-	{																				\
-		case 2	:	( xPinConfig ).Funcnum = 2;										\
-					( xPinConfig ).Pinnum = 10;										\
-					( xPinConfig ).Portnum = 0;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					( xPinConfig ).Pinnum = 11;										\
-					PINSEL_ConfigPin( &( xPinConfig ) );							\
-					break;															\
-																					\
-		default	:	/* These are either not implemented yet, or not available		\
-					on this board.  Force an assert failure. */						\
-					configASSERT( ( cPeripheralNumber ) - ( cPeripheralNumber ) );	\
-					break;															\
-	}
-
 /*******************************************************************************
  * Set the default baud rate used by a UART.
  ******************************************************************************/
@@ -156,7 +88,7 @@ portBASE_TYPE vFreeRTOS_tm4c129_PopulateFunctionPointers( const Peripheral_Types
 /*******************************************************************************
  * Command console definitions.
  ******************************************************************************/
-#define boardCOMMAND_CONSOLE_UART	( const int8_t * const ) "/UART3/"
+#define boardCOMMAND_CONSOLE_UART	( const int8_t * const ) "/UART0/"
 
 /* SSP specific ioctl requests. */
 #define ioctlSET_SSP_FRAME_FORMAT			1000

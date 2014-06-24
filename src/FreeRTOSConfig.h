@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V7.0.2 - Copyright (C) 2011 Real Time Engineers Ltd.
+    FreeRTOS V7.3.0 - Copyright (C) 2012 Real Time Engineers Ltd.
 
 
     ***************************************************************************
@@ -63,51 +63,79 @@
  * THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
  * FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE.
  *
- * See http://www.freertos.org/a00110.html.
+ * http://www.freertos.org/a00110.html
  *----------------------------------------------------------*/
+#define PRIORITY_LED_TASK       ( 4U )
+#define PRIORITY_HTTPD_TASK     ( 3U )
+#define PRIORITY_DISPLAY_TASK   ( 2U )
+#define PRIORITY_CONTROL_TASK   ( 1U )
+#define configUART_COMMAND_CONSOLE_TASK_PRIORITY    ( 0U ) 
 
-#define configUSE_PREEMPTION                1
-#define configUSE_IDLE_HOOK                 1
- #define configMAX_PRIORITIES                ( ( unsigned portBASE_TYPE ) 16 )
-#define configUSE_TICK_HOOK                 0
-#define configCPU_CLOCK_HZ                  ( ( unsigned long ) 80000000 )
-#define configTICK_RATE_HZ                  ( ( portTickType ) 1000 )
-#define configMINIMAL_STACK_SIZE            ( ( unsigned short ) 200 )
-#define configTOTAL_HEAP_SIZE               ( ( size_t ) ( 20240 ) )
-#define configMAX_TASK_NAME_LEN             ( 12 )
-#define configUSE_TRACE_FACILITY            1
-#define configUSE_16_BIT_TICKS              0
-#define configIDLE_SHOULD_YIELD             0
-#define configQUEUE_REGISTRY_SIZE           10
-#define configUSE_CO_ROUTINES               0
-#define configMAX_CO_ROUTINE_PRIORITIES     ( 2 )
-#define configUSE_MUTEXES                   1
-#define configUSE_RECURSIVE_MUTEXES         1
-#define configCHECK_FOR_STACK_OVERFLOW      2
+/* Define STACK size for all threads */
+#define configUART_COMMAND_CONSOLE_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )    
 
-
-
-
-
+/* Dimensions a buffer that can be used by the FreeRTOS+CLI command
+interpreter.  Set this value to 1 to save RAM if FreeRTOS+CLI does not supply
+the output butter.  See the FreeRTOS+CLI documentation for more information:
+http://www.FreeRTOS.org/FreeRTOS-Plus/FreeRTOS_Plus_CLI/ */
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE			1024    
+ 
+#define configUSE_PREEMPTION			1
+#define configUSE_IDLE_HOOK				1
+#define configMAX_PRIORITIES			( ( unsigned portBASE_TYPE ) 16 )
+#define configUSE_TICK_HOOK				0
+#define configCPU_CLOCK_HZ				( ( unsigned long ) 80000000 )
+#define configTICK_RATE_HZ				( ( portTickType ) 1000 )
+#define configMINIMAL_STACK_SIZE		( ( unsigned short ) 90 )
+#define configTOTAL_HEAP_SIZE           ( ( size_t ) ( 20240 ) )
+#define configMAX_TASK_NAME_LEN			( 12 )
+#define configIDLE_SHOULD_YIELD			0
+#define configQUEUE_REGISTRY_SIZE		10
+#define configUSE_TRACE_FACILITY		1
+#define configUSE_16_BIT_TICKS			0
+#define configUSE_MUTEXES				1
+#define configUSE_CO_ROUTINES 			0
+#define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
+#define configUSE_COUNTING_SEMAPHORES 	1
+#define configUSE_ALTERNATIVE_API 		0
+#define configUSE_RECURSIVE_MUTEXES		1
+/* Hook function related definitions. */
+#define configUSE_MALLOC_FAILED_HOOK	0    
+#define configCHECK_FOR_STACK_OVERFLOW	2
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */
 
-#define INCLUDE_vTaskPrioritySet            1
-#define INCLUDE_uxTaskPriorityGet           1
-#define INCLUDE_vTaskDelete                 1
-#define INCLUDE_vTaskCleanUpResources       0
-#define INCLUDE_vTaskSuspend                1
-#define INCLUDE_vTaskDelayUntil             1
-#define INCLUDE_vTaskDelay                  1
-#define INCLUDE_uxTaskGetStackHighWaterMark 1
-
-/* Be ENORMOUSLY careful if you want to modify these two values and make sure
+#define INCLUDE_vTaskPrioritySet			1
+#define INCLUDE_uxTaskPriorityGet			1
+#define INCLUDE_vTaskDelete					1
+#define INCLUDE_vTaskCleanUpResources		0
+#define INCLUDE_vTaskSuspend				1
+#define INCLUDE_vTaskDelayUntil				1
+#define INCLUDE_vTaskDelay					1
+#define INCLUDE_uxTaskGetStackHighWaterMark	1
+#define INCLUDE_xTimerGetTimerTaskHandle	0
+#define INCLUDE_xTaskGetIdleTaskHandle		0
+#define INCLUDE_xQueueGetMutexHolder		1
+    
+/* Be ENORMOUSLY careful if you want to modify these 4 values and make sure
  * you read http://www.freertos.org/a00110.html#kernel_priority first!
  */
+
+ /* The minimum possible interrupt priority. */
+#define configMIN_LIBRARY_INTERRUPT_PRIORITY	( 31 )
+#define configMAX_LIBRARY_INTERRUPT_PRIORITY	( 5 )
+ 
 // Priority 7, or 0xE0 as only the top three bits are implemented.  
-// This is the lowest priority.
-#define configKERNEL_INTERRUPT_PRIORITY         ( 7 << 5 )
-// Priority 5, or 0xA0 as only the top three bits are implemented.
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 5 << 5 )
+/* The lowest priority. */
+#define configKERNEL_INTERRUPT_PRIORITY 		( configMIN_LIBRARY_INTERRUPT_PRIORITY << 3 )
+/* Priority 5, or 248 as only the top five bits are implemented. */
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY 	( configMAX_LIBRARY_INTERRUPT_PRIORITY << 3 )
+/* Dimensions a buffer used by the command interpreter. */
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE		1024
+/* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
+standard names. */
+#define vPortSVCHandler SVCall_Handler
+#define xPortPendSVHandler PendSV_Handler
+#define xPortSysTickHandler SysTick_Handler
 
 #endif /* FREERTOS_CONFIG_H */

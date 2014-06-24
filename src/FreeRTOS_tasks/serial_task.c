@@ -53,7 +53,10 @@
 
 /* Standard includes. */
 #include <stdint.h>
+#include <stdbool.h>
 #include "string.h"
+
+#include "FreeRTOSConfig.h"
 
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
@@ -63,11 +66,9 @@
 
 /* FreeRTOS+IO includes. */
 #include "FreeRTOS_IO/FreeRTOS_IO.h"
-
-/* Example includes. */
 #include "FreeRTOS_CLI/FreeRTOS_CLI.h"
 #include "FreeRTOS_tasks/serial_task.h"
-
+    
 /* Dimensions the buffer into which input characters are placed. */
 #define cmdMAX_INPUT_SIZE			50
 
@@ -103,13 +104,17 @@ vUARTCommandConsoleStart(void)
 {
     //
     // Create the uart CLI task.
-    //
-    if(xTaskCreate( 	prvUARTCommandConsoleTask,				/* The task that implements the command console. */
-					( const int8_t * const ) "UARTCmd",		/* Text name assigned to the task.  This is just to assist debugging.  The kernel does not use this name itself. */
-					configUART_COMMAND_CONSOLE_STACK_SIZE,	/* The size of the stack allocated to the task. */
-					NULL,									/* The parameter is not used, so NULL is passed. */
-					configUART_COMMAND_CONSOLE_TASK_PRIORITY,/* The priority allocated to the task. */
-					&xCommandConsoleTask )
+    //              /* The task that implements the command console. */    
+    if(xTaskCreate(prvUARTCommandConsoleTask,
+                    /* Text name assigned to the task.  This is just to assist debugging.  The kernel does not use this name itself. */
+					( const int8_t * const ) "UARTCmd",
+                    /* The size of the stack allocated to the task. */
+					configUART_COMMAND_CONSOLE_STACK_SIZE,	
+                    /* The parameter is not used, so NULL is passed. */
+					NULL,									
+                    /* The priority allocated to the task. */
+					configUART_COMMAND_CONSOLE_TASK_PRIORITY,
+					&xCommandConsoleTask ) != pdTRUE)
     {
         return(1);
     }

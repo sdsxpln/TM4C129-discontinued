@@ -38,6 +38,8 @@
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+#include "semphr.h"
 
 /* FreeRTOS IO library includes. */
 #include "FreeRTOS_IO/FreeRTOS_DriverInterface.h"
