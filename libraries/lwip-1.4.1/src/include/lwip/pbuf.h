@@ -107,14 +107,6 @@ struct pbuf {
    * the stack itself, or pbuf->next pointers from a chain.
    */
   u16_t ref;
-  
-#if LWIP_PTPD
-  /* the time at which the packet was received, seconds component */
-  u32_t time_s;
-
-  /* the time at which the packet was received, nanoseconds component */
-  u32_t time_ns;
-#endif /* #if LWIP_PTPD */  
 };
 
 #if LWIP_SUPPORT_CUSTOM_PBUF
