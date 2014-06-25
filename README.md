@@ -1,4 +1,4 @@
-    TM4C129 FreeRTOS (w/ lwIP/HTTP server &amp; FreeRTOS+IO/CLI)
+    TM4C129 FreeRTOS (w/ lwIP/HTTP server & FreeRTOS+IO/CLI)
 
     This project contains libraries released under the GPLv2 license. 
     Because of this all code is required to be compatible with the GPLv2 license.
