@@ -2,10 +2,12 @@
 
     This project contains libraries released under the GPLv2 license. 
     Because of this all code is required to be compatible with the GPLv2 license.
-    The code supports the ARM GCC compiler. There is no "official" support for other compilers.
+    The code supports the ARM GCC compiler. 
+    There is no "official" support for other compilers.
 
     3rd party libraries have been added for completeness. 
-    There has been no modification of 3rd party software where not directly specified.
+    There has been no modification of 3rd party libraries, however microcontroller ports 
+    and library specific apps are included within the respective library directories.
 
 
     
