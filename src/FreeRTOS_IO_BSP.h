@@ -13,7 +13,7 @@
  * The GPL V2 text is available on the gnu.org web site, and on the following
  * URL: http://www.FreeRTOS.org/gpl-2.0.txt
  *
- * - Commercial licensing -
+ * - Commercial licensing 
  * Businesses and individuals who wish to incorporate FreeRTOS+IO into
  * proprietary software for redistribution in any form must first obtain a low
  * cost commercial license - and in-so-doing support the maintenance, support
@@ -38,7 +38,7 @@
 #ifndef FREERTOS_BOARD_H
 #define FREERTOS_BOARD_H
 
-#include "FreeRTOS_IO\tm4c129\FreeRTOS_base_board_tm4c129.h"
+#include "FreeRTOS_base_board_tm4c129.h"
 
 #endif /* FREERTOS_BOARD_H */
 

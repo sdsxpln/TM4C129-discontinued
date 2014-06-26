@@ -3,22 +3,22 @@
 
 
     ***************************************************************************
-    *                                                                       *
-    *    FreeRTOS tutorial books are available in pdf and paperback.        *
-    *    Complete, revised, and edited pdf reference manuals are also       *
-    *    available.                                                         *
-    *                                                                       *
-    *    Purchasing FreeRTOS documentation will not only help you, by       *
-    *    ensuring you get running as quickly as possible and with an        *
-    *    in-depth knowledge of how to use FreeRTOS, it will also help       *
-    *    the FreeRTOS project to continue with its mission of providing     *
-    *    professional grade, cross platform, de facto standard solutions    *
-    *    for microcontrollers - completely free of charge!                  *
-    *                                                                       *
-    *    >>> See http://www.FreeRTOS.org/Documentation for details. <<<     *
-    *                                                                       *
-    *    Thank you for using FreeRTOS, and thank you for your support!      *
-    *                                                                       *
+     *                                                                       *
+     *    FreeRTOS tutorial books are available in pdf and paperback.        *
+     *    Complete, revised, and edited pdf reference manuals are also       *
+     *    available.                                                         *
+     *                                                                       *
+     *    Purchasing FreeRTOS documentation will not only help you, by       *
+     *    ensuring you get running as quickly as possible and with an        *
+     *    in-depth knowledge of how to use FreeRTOS, it will also help       *
+     *    the FreeRTOS project to continue with its mission of providing     *
+     *    professional grade, cross platform, de facto standard solutions    *
+     *    for microcontrollers - completely free of charge!                  *
+     *                                                                       *
+     *    >>> See http://www.FreeRTOS.org/Documentation for details. <<<     *
+     *                                                                       *
+     *    Thank you for using FreeRTOS, and thank you for your support!      *
+     *                                                                       *
     ***************************************************************************
 
 
@@ -49,7 +49,7 @@
 
     http://www.OpenRTOS.com - Commercial support, development, porting,
     licensing and training services.
-    */
+*/
 
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
@@ -79,7 +79,7 @@ interpreter.  Set this value to 1 to save RAM if FreeRTOS+CLI does not supply
 the output butter.  See the FreeRTOS+CLI documentation for more information:
 http://www.FreeRTOS.org/FreeRTOS-Plus/FreeRTOS_Plus_CLI/ */
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE			1024    
-
+ 
 #define configUSE_PREEMPTION			1
 #define configUSE_IDLE_HOOK				1
 #define configMAX_PRIORITIES			( ( unsigned portBASE_TYPE ) 16 )
@@ -116,20 +116,20 @@ to exclude the API function. */
 #define INCLUDE_xTimerGetTimerTaskHandle	0
 #define INCLUDE_xTaskGetIdleTaskHandle		0
 #define INCLUDE_xQueueGetMutexHolder		1
-
+    
 /* Be ENORMOUSLY careful if you want to modify these 4 values and make sure
  * you read http://www.freertos.org/a00110.html#kernel_priority first!
  */
-
-/* The minimum possible interrupt priority. */
+ /* The minimum possible interrupt priority. */
 #define configMIN_LIBRARY_INTERRUPT_PRIORITY	( 31 )
 #define configMAX_LIBRARY_INTERRUPT_PRIORITY	( 5 )
-
 // Priority 7, or 0xE0 as only the top three bits are implemented.  
 /* The lowest priority. */
 #define configKERNEL_INTERRUPT_PRIORITY 		( configMIN_LIBRARY_INTERRUPT_PRIORITY << 3 )
 /* Priority 5, or 248 as only the top five bits are implemented. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY 	( configMAX_LIBRARY_INTERRUPT_PRIORITY << 3 )
+
+
 /* Dimensions a buffer used by the command interpreter. */
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE		1024
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
