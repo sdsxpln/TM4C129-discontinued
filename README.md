@@ -1,16 +1,5 @@
     TM4C129 FreeRTOS (w/ lwIP/HTTP server & FreeRTOS+IO/CLI)
 
-    This project contains libraries released under the GPLv2 license. 
-    Because of this all code is required to be compatible with the GPLv2 license.
-    The code supports the ARM GCC compiler. 
-    There is no "official" support for other compilers.
-
-    3rd party libraries have been added for completeness. 
-    There has been no modification of 3rd party libraries, however microcontroller ports 
-    and library specific apps are included within the respective library directories.
-
-
-    
     Copyright (C) 2014  Lindem Data Acquisition AS
 
     This program is free software; you can redistribute it and/or modify
@@ -30,3 +19,23 @@
     website:  www.LDA.as
     email:    joakim.myrland@LDA.as
     project:  https://github.com/Lindem-Data-Acquisition-AS/TM4C129/
+
+
+    ***************************************************************************
+    
+    
+    This project contains libraries released under the GPLv2 license. 
+    Because of this all code is required to be compatible with the GPLv2 license.
+    The code supports the ARM GCC compiler. 
+    There is no "official" support for other compilers.
+
+    3rd party libraries have been added for completeness. 
+    
+    The following 3rd party libraries in the "libraries" folder has been modified:
+    There are no modifications beyond the ones listed below, however microcontroller ports 
+    and library specific apps are included within the respective library directories.
+
+    *   lwip-1.4.1\src\include\lwip\pbuf.h edited for the TI implemented LWIP_PTPD.
+        if LWIP_PTPD is diabled in lwipopts.h, the default pbuf.h file can be used.
+    
+    
