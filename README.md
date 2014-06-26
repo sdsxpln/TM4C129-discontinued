@@ -1,10 +1,41 @@
-TM4C129
-=======
+    TM4C129 FreeRTOS (w/ lwIP/HTTP server & FreeRTOS+IO/CLI)
 
-TM4C129 FreeRTOS (w/ lwIP/HTTP server &amp; FreeRTOS+IO/CLI)
+    Copyright (C) 2014  Lindem Data Acquisition AS
 
-This project is released under the GPLv2 license. All code is required to be compatible with the GPLv2 license.
-<br>The code supports the ARM GCC compiler. There is no "official" support for other compilers.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-3rd party libraries have been added for completeness. 
-<br>There has been no modification of 3rd party software where not directly specified.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    website:  www.LDA.as
+    email:    joakim.myrland@LDA.as
+    project:  https://github.com/Lindem-Data-Acquisition-AS/TM4C129/
+
+
+    ***************************************************************************
+    
+    
+    This project contains libraries released under the GPLv2 license. 
+    Because of this all code is required to be compatible with the GPLv2 license.
+    The code supports the ARM GCC compiler. 
+    There is no "official" support for other compilers.
+
+    3rd party libraries have been added for completeness. 
+    
+    The following 3rd party libraries in the "libraries" folder has been modified:
+    There are no modifications beyond the ones listed below, however microcontroller ports 
+    and library specific apps are included within the respective library directories.
+
+    *   lwip-1.4.1\src\include\lwip\pbuf.h edited for the TI implemented LWIP_PTPD.
+        if LWIP_PTPD is diabled in lwipopts.h, the default pbuf.h file can be used.
+    
+    
