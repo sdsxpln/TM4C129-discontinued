@@ -51,11 +51,11 @@
     
     
     We have successfully implemented GPLv2 compatible alternatives for the 
-    Makefile, startup_gcc and linker file this project. We will upload these files 
+    Makefile, startup_gcc and linker file for this project. We will upload these files 
     once we have finished integrating the libraries with a complete makefile example.
     These files will support the ARM GCC compiler, and works under Cygwin and Linux.
     We intend to support vanilla windows but... for now, just install Cygwin.
     
     Currently implementing Newlib support, as this is not done by TI as default. Newlib is 
-    needed for runtime stats by FreeRTOS, as well as the FreeRTOS+CLI command register.
+    needed for runtime stats by FreeRTOS, as well as the FreeRTOS+CLI command register+++
     We are also finishing the lwIP library example with http server.
