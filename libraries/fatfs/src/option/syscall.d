@@ -1,0 +1,29 @@
+../../../../third_party/fatfs/src/option/syscall.o: \
+ ../../../../third_party/fatfs/src/option/syscall.c \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/FreeRTOS.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/include/stddef.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/include/stdint.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/stdint.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/_ansi.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/newlib.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/config.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/ieeefp.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/features.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/projdefs.h \
+ FreeRTOSConfig.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/portable.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/mpu_wrappers.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/semphr.h \
+ ../../../../third_party/FreeRTOSv8.0.1/FreeRTOS/Source/include/queue.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/stdlib.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/_ansi.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/reent.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/_default_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/lock.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/stdlib.h \
+ ../../../../third_party/fatfs/src/option/../ff.h \
+ ../../../../third_party/fatfs/src/option/../integer.h \
+ ../../../../third_party/fatfs/src/option/../ffconf.h

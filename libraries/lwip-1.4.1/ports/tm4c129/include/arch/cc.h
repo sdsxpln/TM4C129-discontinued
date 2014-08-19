@@ -32,6 +32,16 @@
 #ifndef __CC_H__
 #define __CC_H__
 
+#define U8_F "c"
+#define S8_F "c"
+#define X8_F "x"
+#define U16_F "u"
+#define S16_F "d"
+#define X16_F "x"
+#define U32_F "u"
+#define S32_F "d"
+#define X32_F "x" 
+ 
 typedef unsigned    char    u8_t;
 typedef signed      char    s8_t;
 typedef unsigned    short   u16_t;
@@ -114,5 +124,7 @@ extern void __error__(char *pcFilename, uint32_t ui32Line);
 #define LWIP_PLATFORM_ASSERT(msg)
 #endif
 #endif
+
+#define LWIP_PROVIDE_ERRNO /* Make lwip/arch.h define the codes which are used throughout */
 
 #endif /* __CC_H__ */

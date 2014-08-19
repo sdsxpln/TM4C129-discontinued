@@ -156,6 +156,7 @@ void vTraceStoreLowPower(uint32_t flag)
 #if (INCLUDE_MEMMANG_EVENTS == 1)
 void vTraceStoreMemMangEvent(uint32_t ecode, uint32_t address, uint32_t size)
 {
+#ifndef TRACE_SCHEDULING_ONLY
 	uint8_t dts1;
 	MemEventSize * ms;
 	MemEventAddr * ma;
@@ -175,36 +176,43 @@ void vTraceStoreMemMangEvent(uint32_t ecode, uint32_t address, uint32_t size)
 			
 			size_low = (uint16_t)prvTraceGetParam(0xFFFF, size);
 			
-			ms = (MemEventSize *)xTraceNextFreeEventBufferSlot();
-			if (ms != NULL)
+			if (RecorderDataPtr->recorderActive) /* Always good to repeat this after XTS and XPS usage */
 			{
-				ms->dts = dts1;
-				ms->type = (uint8_t)ecode;
-				ms->size = size_low;
-				prvTraceUpdateCounters();
-				
-				/* Storing a second record with address (signals "failed" if null) */
-				#if (HEAP_SIZE_BELOW_16M)
-					addr_low = address & 0xFFFF;
-					addr_high = (address >> 16) & 0xFF;
-				#else
-					addr_low = (uint16_t)prvTraceGetParam(0xFFFF, address);
-					addr_high = 0;
-				#endif
-				
-				ma = (MemEventAddr *) xTraceNextFreeEventBufferSlot();
-				
-				if (ma != NULL)
+				ms = (MemEventSize *)xTraceNextFreeEventBufferSlot();
+				if (ms != NULL)
 				{
-					ma->addr_low = addr_low;
-					ma->addr_high = addr_high;
-					ma->type = ( ( uint8_t) ecode ) + 1;  /* Note this! */
-					prvTraceUpdateCounters();				
+					ms->dts = dts1;
+					ms->type = (uint8_t)ecode;
+					ms->size = size_low;
+					prvTraceUpdateCounters();
+				
+					/* Storing a second record with address (signals "failed" if null) */
+					#if (HEAP_SIZE_BELOW_16M)
+						addr_low = address & 0xFFFF;
+						addr_high = (address >> 16) & 0xFF;
+					#else
+						addr_low = (uint16_t)prvTraceGetParam(0xFFFF, address);
+						addr_high = 0;
+					#endif
+				
+					if (RecorderDataPtr->recorderActive) /* Always good to repeat this after XTS and XPS usage */
+					{
+						ma = (MemEventAddr *) xTraceNextFreeEventBufferSlot();
+				
+						if (ma != NULL)
+						{
+							ma->addr_low = addr_low;
+							ma->addr_high = addr_high;
+							ma->type = ( ( uint8_t) ecode ) + 1;  /* Note this! */
+							prvTraceUpdateCounters();				
+						}					
+					}
 				}
 			}
 		}
 	}
-	trcCRITICAL_SECTION_END();	
+	trcCRITICAL_SECTION_END();
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 #endif
 
@@ -216,6 +224,7 @@ void vTraceStoreMemMangEvent(uint32_t ecode, uint32_t address, uint32_t size)
  ******************************************************************************/
 void vTraceStoreKernelCall(uint32_t ecode, traceObjectClass objectClass, uint32_t objectNumber)
 {
+#ifndef TRACE_SCHEDULING_ONLY
     KernelCall * kse;
     uint16_t dts1;
     TRACE_SR_ALLOC_CRITICAL_SECTION();
@@ -270,6 +279,7 @@ void vTraceStoreKernelCall(uint32_t ecode, traceObjectClass objectClass, uint32_
         }
     }
 	trcCRITICAL_SECTION_END();
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 /*******************************************************************************
@@ -284,6 +294,7 @@ void vTraceStoreKernelCallWithParam(uint32_t evtcode,
                                     uint32_t objectNumber,
                                     uint32_t param)
 {
+#ifndef TRACE_SCHEDULING_ONLY
     KernelCallWithParamAndHandle * kse;
     uint8_t dts2;	
     TRACE_SR_ALLOC_CRITICAL_SECTION();
@@ -334,6 +345,7 @@ void vTraceStoreKernelCallWithParam(uint32_t evtcode,
         }
     }
 	trcCRITICAL_SECTION_END();
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 /*******************************************************************************
@@ -376,6 +388,7 @@ static uint32_t prvTraceGetParam(uint32_t param_max, uint32_t param)
  ******************************************************************************/
 void vTraceStoreKernelCallWithNumericParamOnly(uint32_t evtcode, uint32_t param)
 {
+#ifndef TRACE_SCHEDULING_ONLY
     KernelCallWithParam16 * kse;
     uint8_t dts6;
 	uint16_t restParam;
@@ -426,6 +439,7 @@ void vTraceStoreKernelCallWithNumericParamOnly(uint32_t evtcode, uint32_t param)
         }
     }
 	trcCRITICAL_SECTION_END();
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 /*******************************************************************************

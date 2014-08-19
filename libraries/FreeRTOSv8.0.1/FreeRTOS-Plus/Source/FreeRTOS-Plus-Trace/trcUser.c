@@ -302,8 +302,7 @@ void vTraceSetISRProperties(objectHandleType handle, const char* name, char prio
 {
 	TRACE_ASSERT(handle <= RecorderDataPtr->ObjectPropertyTable.NumberOfObjectsPerClass[TRACE_CLASS_ISR], "vTraceSetISRProperties: Invalid value for handle", );
 	TRACE_ASSERT(name != NULL, "vTraceSetISRProperties: name == NULL", );
-	TRACE_ASSERT(priority >= 0, "vTraceSetISRProperties: Invalid value for priority", );
-
+	
     vTraceSetObjectName(TRACE_CLASS_ISR, handle, name);
     vTraceSetPriorityProperty(TRACE_CLASS_ISR, handle, priority);
 }
@@ -1052,11 +1051,13 @@ UserEventChannel xTraceRegisterChannelFormat(traceLabel channel, traceLabel form
  ******************************************************************************/
 void vTraceChannelPrintF(UserEventChannel channelPair, ...)
 {
+#ifndef TRACE_SCHEDULING_ONLY
 	va_list vl;
 
 	va_start(vl, channelPair);
 	vTraceChannelPrintF_Helper(channelPair, vl);
 	va_end(vl);
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 void vTraceChannelPrintF_Helper(UserEventChannel channelPair, va_list vl)
@@ -1080,12 +1081,14 @@ void vTraceChannelPrintF_Helper(UserEventChannel channelPair, va_list vl)
  ******************************************************************************/
 void vTraceChannelUserEvent(UserEventChannel channelPair)
 {
+#ifndef TRACE_SCHEDULING_ONLY
 	uint32_t data[(3 + MAX_ARG_SIZE) / 4];
 
 	TRACE_ASSERT(channelPair != 0, "vTraceChannelPrintF: channelPair == 0", );
 	TRACE_ASSERT(channelPair <= CHANNEL_FORMAT_PAIRS, "vTraceChannelPrintF: ", );
 
 	prvTraceUserEventHelper2(channelPair, data, 1); /* Only need one slot for timestamp */
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 #endif /* USE_SEPARATE_USER_EVENT_BUFFER == 1 */
 
@@ -1142,11 +1145,13 @@ void vTraceChannelUserEvent(UserEventChannel channelPair)
 
 void vTracePrintF(traceLabel eventLabel, const char* formatStr, ...)
 {
+#ifndef TRACE_SCHEDULING_ONLY
 	va_list vl;
 
 	va_start(vl, formatStr);
 	vTracePrintF_Helper(eventLabel, formatStr, vl);
 	va_end(vl);
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 void vTracePrintF_Helper(traceLabel eventLabel, const char* formatStr, va_list vl)
@@ -1293,6 +1298,7 @@ void vTracePrintF_Helper(traceLabel eventLabel, const char* formatStr, va_list v
  ******************************************************************************/
 void vTraceUserEvent(traceLabel eventLabel)
 {
+#ifndef TRACE_SCHEDULING_ONLY
 #if (USE_SEPARATE_USER_EVENT_BUFFER == 0)
     UserEvent* ue;
     uint8_t dts1;
@@ -1338,6 +1344,7 @@ void vTraceUserEvent(traceLabel eventLabel)
 		prvTraceUserEventHelper2(channel, tempDataBuffer, noOfSlots);
 	}	
 #endif
+#endif /* TRACE_SCHEDULING_ONLY */
 }
 
 /*******************************************************************************

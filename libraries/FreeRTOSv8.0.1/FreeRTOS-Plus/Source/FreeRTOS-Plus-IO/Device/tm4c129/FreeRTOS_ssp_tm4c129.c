@@ -35,6 +35,14 @@
  *
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/hw_types.h"
+#include "driverlib/gpio.h"
+#include "driverlib/rom.h"
+#include "driverlib/rom_map.h"
+#include "driverlib/sysctl.h"
+
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
 #include "task.h"
@@ -47,17 +55,16 @@
 
 /* Hardware setup peripheral driver includes.  The includes for the SSP itself
 is already included from FreeRTOS_IO_BSP.h. */
-#include "lpc17xx_pinsel.h"
 
 /* The maximum number of characters that can be in the Rx FIFO. */
 #define sspMAX_FIFO_DEPTH				( 8 )
 
 /* All the interrupts associated with receiving on the SSP. */
-#define sspALL_SSP_RX_INTERRUPTS 		( SSP_INTCFG_RT | SSP_INTCFG_RX | SSP_INTCFG_ROR )
+#define sspALL_SSP_RX_INTERRUPTS 		( SSI_RXFF | SSI_RXTO | SSI_RXOR )
 
 /* The interrupts that are associated with data having been received on the
 SSP. */
-#define sspRX_DATA_AVAILABLE_INTERRUPTS	( SSP_INTCFG_RT | SSP_INTCFG_RX )
+#define sspRX_DATA_AVAILABLE_INTERRUPTS	( SSI_RXFF | SSI_DMARX )
 
 /* A definition of configSPI_INTERRUPT_PRIORITY is required for compilation,
 even if FreeRTOSIOConfig.h is configured to not include any interrupt driven
@@ -68,11 +75,23 @@ methods of transacting data. */
 
 /*-----------------------------------------------------------*/
 
+typedef struct {
+	void *tx_data;				/**< Pointer to transmit data */
+	uint32_t tx_cnt;			/**< Transmit counter */
+	void *rx_data;				/**< Pointer to transmit data */
+	uint32_t rx_cnt;			/**< Receive counter */
+	uint32_t length;			/**< Length of transfer data */
+} SSP_DATA_SETUP_Type;
+
 /*
  * Write bytes from ppucBuffer into the pxSSP FIFO until either all the bytes
  * have been written, or the FIFO is full.
  */
-static size_t prvFillFifoFromBuffer( LPC_SSP_TypeDef * const pxSSP, uint8_t **ppucBuffer, const size_t xTotalBytes );
+static size_t prvFillFifoFromBuffer( const uint32_t pxSSP, uint8_t **ppucBuffer, const size_t xTotalBytes );
+static void spi_char_send(uint32_t spi_base, unsigned char data);
+static uint32_t spi_char_get( uint32_t spi_base );
+static uint32_t spi_write( uint32_t pxSSP, SSP_DATA_SETUP_Type *pxSSPTransferDefinition );
+static uint32_t spi_read( uint32_t pxSSP, SSP_DATA_SETUP_Type *pxSSPTransferDefinition );
 
 /*-----------------------------------------------------------*/
 
@@ -90,6 +109,19 @@ purpose of sending is to solicit incoming data, and Rxed data should be
 stored, then ulReceiveActive[ x ] will be set to true. */
 static volatile uint32_t ulReceiveActive[ boardNUM_SSPS ] = { pdFALSE };
 
+typedef struct {
+	uint32_t Databit; 		/** Databit number, should be SSP_DATABIT_x,
+							where x is in range from 4 - 16 */
+	uint32_t Mode;			/** SSP mode, should be:
+								- SSP_MASTER_MODE: Master mode
+								- SSP_SLAVE_MODE: Slave mode */
+	uint32_t FrameFormat;	/** Frame Format:
+								- SSP_FRAME_SPI: Motorola SPI frame format
+								- SSP_FRAME_TI: TI frame format
+								- SSP_FRAME_MICROWIRE: National Microwire frame format */
+	uint32_t ClockRate;		/** Clock rate,in Hz */
+} SSP_CFG_Type;
+
 /* Maintain a structure that holds the configuration of each SSP port.  This
 allows a single configuration parameter to be changed at a time, as the
 configuration for all the other parameters can be read from the stored
@@ -97,18 +129,19 @@ structure rather than queried from the peripheral itself. */
 static SSP_CFG_Type xSSPConfigurations[ boardNUM_SSPS ];
 
 /* The CMSIS interrupt number definitions for the SSP ports. */
-static const IRQn_Type xIRQ[ boardNUM_SSPS ] = { SSP0_IRQn, SSP1_IRQn };
+static const int8_t xINT_SPIn[] = { INT_SSI0, INT_SSI1, INT_SSI2, INT_SSI3 };
+//static const IRQn_Type xIRQ[ boardNUM_SSPS ] = { SSP0_IRQn, SSP1_IRQn };
 
 /*-----------------------------------------------------------*/
 
 portBASE_TYPE FreeRTOS_SSP_open( Peripheral_Control_t * const pxPeripheralControl )
 {
-PINSEL_CFG_Type xPinConfig;
-portBASE_TYPE xReturn = pdFAIL;
-LPC_SSP_TypeDef * const pxSSP = ( LPC_SSP_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( pxPeripheralControl );
-SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
-const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( pxPeripheralControl );
-volatile uint16_t usJunkIt;
+    portBASE_TYPE xReturn = pdFAIL;
+    const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( pxPeripheralControl );
+    const uint32_t pxSSP = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( pxPeripheralControl );
+
+    SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
+    //volatile uint16_t usJunkIt;
 
 	/* Sanity check the peripheral number. */
 	if( cPeripheralNumber < boardNUM_SSPS )
@@ -137,18 +170,61 @@ volatile uint16_t usJunkIt;
 				taskENTER_CRITICAL();
 				{
 					/* Setup the pins for the SSP being used. */
-					boardCONFIGURE_SSP_PINS( cPeripheralNumber, xPinConfig );
+					//boardCONFIGURE_SSP_PINS( cPeripheralNumber, xPinConfig );
+                        				
+                    /* Enable the peripherals used to drive the SDC on SSI */
+                    ROM_SysCtlPeripheralEnable(SDC_SSI_SYSCTL_PERIPH);
+                    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
+                    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+                    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
+                
+                    /*
+                    * Configure the appropriate pins to be SSI instead of GPIO. The FSS (CS)
+                    * signal is directly driven to ensure that we can hold it low through a
+                    * complete transaction with the SD card.
+                    */
+                    ROM_GPIOPinTypeSSI(SDC_SSI_TX_GPIO_PORT_BASE, SDC_SSI_TX);
+                    ROM_GPIOPinTypeSSI(SDC_SSI_RX_GPIO_PORT_BASE, SDC_SSI_RX);
+                    ROM_GPIOPinTypeSSI(SDC_SSI_CLK_GPIO_PORT_BASE, SDC_SSI_CLK);
+                    ROM_GPIOPinTypeGPIOOutput(SDC_SSI_FSS_GPIO_PORT_BASE, SDC_SSI_FSS);
+                
+                    /*
+                    * Set the SSI output pins to 4MA drive strength and engage the
+                    * pull-up on the receive line.
+                    */
+                    MAP_GPIOPadConfigSet(SDC_SSI_RX_GPIO_PORT_BASE, SDC_SSI_RX,
+                                        GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU);
+                    MAP_GPIOPadConfigSet(SDC_SSI_CLK_GPIO_PORT_BASE, SDC_SSI_CLK,
+                                        GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD);
+                    MAP_GPIOPadConfigSet(SDC_SSI_TX_GPIO_PORT_BASE, SDC_SSI_TX,
+                                        GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD);
+                    MAP_GPIOPadConfigSet(SDC_SSI_FSS_GPIO_PORT_BASE, SDC_SSI_FSS,
+                                        GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD);
 
-					/* Set up the default SSP configuration. */
-					SSP_ConfigStructInit( &( xSSPConfigurations[ cPeripheralNumber ] ) );
-					SSP_Init( pxSSP, &( xSSPConfigurations[ cPeripheralNumber ] ) );
-					SSP_Cmd( pxSSP, ENABLE );
+
+                    //SSP_ConfigStructInit( &( xSSPConfigurations[ cPeripheralNumber ] ) );
+					//SSP_Init( pxSSP, &( xSSPConfigurations[ cPeripheralNumber ] ) );
+                    /* Set up the default SSP configuration. */
+                    xSSPConfigurations[ cPeripheralNumber ].FrameFormat = SSI_FRF_MOTO_MODE_0;
+                    xSSPConfigurations[ cPeripheralNumber ].Mode = SSI_MODE_MASTER;
+                    xSSPConfigurations[ cPeripheralNumber ].ClockRate = 400000;
+                    xSSPConfigurations[ cPeripheralNumber ].Databit = 8;
+                    /* Configure the SSI3 port */
+                    ROM_SSIConfigSetExpClk( pxSSP, 
+                                    g_ui32SysClock, 
+                                    xSSPConfigurations[ cPeripheralNumber ].FrameFormat,
+                                    xSSPConfigurations[ cPeripheralNumber ].Mode,
+                                    xSSPConfigurations[ cPeripheralNumber ].ClockRate,
+                                    xSSPConfigurations[ cPeripheralNumber ].Databit);
+                    
+                    //SSP_Cmd( pxSSP, ENABLE );
+                    ROM_SSIEnable( pxSSP );
 
 					/* Clear data in Rx Fifo. */
-					while( ( pxSSP->SR & SSP_SR_RNE ) != 0 )
+					/*while( ( pxSSP->SR & SSP_SR_RNE ) != 0 )
 					{
 						usJunkIt = pxSSP->DR;
-					}
+					}*/
 				}
 				taskEXIT_CRITICAL();
 
@@ -183,11 +259,11 @@ volatile uint16_t usJunkIt;
 
 size_t FreeRTOS_SSP_write( Peripheral_Descriptor_t const pxPeripheral, const void *pvBuffer, const size_t xBytes )
 {
-Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
-size_t xReturn = 0U;
-LPC_SSP_TypeDef * const pxSSP = ( LPC_SSP_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
-SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
-const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
+    size_t xReturn = 0U;
+    const uint32_t pxSSP = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( pxPeripheralControl );
+    SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
+    const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
 
 	/* Remember which transfer control structure is being used, so if
 	an interrupt is being used, it can continue the same transfer until
@@ -208,7 +284,7 @@ const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Pe
 				pxSSPTransferDefinition->tx_data = ( void * ) pvBuffer;
 				pxSSPTransferDefinition->rx_data = NULL;
 				pxSSPTransferDefinition->length  = ( uint32_t ) xBytes;
-				xReturn = SSP_ReadWrite( pxSSP, pxSSPTransferDefinition, SSP_TRANSFER_POLLING );
+				xReturn = spi_write( pxSSP, pxSSPTransferDefinition );
 			}
 			#endif /* ioconfigUSE_SSP_POLLED_TX */
 
@@ -236,11 +312,11 @@ const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Pe
 				ioutilsINITIATE_ZERO_COPY_TX
 					(
 						pxPeripheralControl,
-						SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, DISABLE ),		/* Disable interrupt. */
-						SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, ENABLE ), 		/* Enable interrupt. */
-						prvFillFifoFromBuffer( pxSSP, ( uint8_t ** ) &( pvBuffer ), xBytes ), 	/* Write to peripheral function.  The buffer is passed in by address as the pointer is incremented. */
-						pvBuffer, 																/* Data source. */
-						xReturn																	/* Number of bytes to be written.  This will get set to zero if the write mutex is not held. */
+						ROM_SSIIntDisable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ), /* Disable interrupt. */
+						ROM_SSIIntEnable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ), /* Enable interrupt. */
+						prvFillFifoFromBuffer( pxSSP, ( uint8_t ** ) &( pvBuffer ), xBytes ), /* Write to peripheral function.  The buffer is passed in by address as the pointer is incremented. */
+						pvBuffer, 	/* Data source. */
+						xReturn		/* Number of bytes to be written. This will get set to zero if the write mutex is not held. */
 					);
 			}
 			#endif /* ioconfigUSE_SSP_ZERO_COPY_TX */
@@ -264,11 +340,11 @@ const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Pe
 
 				ioutilsFILL_FIFO_FROM_TX_QUEUE(
 						pxPeripheralControl,
-						SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, DISABLE ),	/* Disable Rx interrupt. */
-						SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, ENABLE ), 	/* Enable Rx interrupt. */
-						sspMAX_FIFO_DEPTH, 													/* Bytes to write to the FIFO. */
-						( pxSSP->SR & SSP_STAT_TXFIFO_NOTFULL ) != 0UL,						/* FIFO not full. */
-						pxSSP->DR = SSP_DR_BITMASK( ucChar ) );							  	/* Tx function. */
+                        ROM_SSIIntDisable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ),/* Disable interrupt. */
+						ROM_SSIIntEnable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ), /* Enable interrupt. */
+						sspMAX_FIFO_DEPTH, 										/* Bytes to write to the FIFO. */                        
+						( ROM_SSIIntStatus(pxSSP, true) & SSI_TXFF ) != 0UL,			    /* FIFO not full. */
+						spi_char_send( pxSSP, ucChar ) );					        /* Tx function. */
 			}
 			#endif /* ioconfigUSE_SSP_RX_CHAR_QUEUE */
 			break;
@@ -296,14 +372,14 @@ const uint32_t ulPeripheralNumber = ( uint32_t ) diGET_PERIPHERAL_NUMBER( ( ( Pe
 
 size_t FreeRTOS_SSP_read( Peripheral_Descriptor_t const pxPeripheral, void * const pvBuffer, const size_t xBytes )
 {
-Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
-size_t xReturn = 0U;
-LPC_SSP_TypeDef * const pxSSP = ( LPC_SSP_TypeDef * const ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
-SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
-const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
+    size_t xReturn = 0U;
+    const uint32_t pxSSP = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( pxPeripheralControl );
+    SSP_DATA_SETUP_Type *pxSSPTransferDefinition;
+    const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
 
 	/* Sanity check the array index. */
-	configASSERT( cPeripheralNumber < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
+	//configASSERT( cPeripheralNumber < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
 
 	switch( diGET_RX_TRANSFER_TYPE( pxPeripheralControl ) )
 	{
@@ -321,7 +397,7 @@ const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control
 				pxSSPTransferDefinition->tx_data = NULL;
 				pxSSPTransferDefinition->rx_data = ( void * ) pvBuffer;
 				pxSSPTransferDefinition->length  = ( uint32_t ) xBytes;
-				xReturn = SSP_ReadWrite( pxSSP, pxSSPTransferDefinition, SSP_TRANSFER_POLLING );
+				xReturn = spi_read( pxSSP, pxSSPTransferDefinition );
 			}
 			#endif /* ioconfigUSE_SSP_POLLED_RX */
 			break;
@@ -369,8 +445,8 @@ const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control
 					ioutilsRECEIVE_CHARS_FROM_CIRCULAR_BUFFER
 						(
 							pxPeripheralControl,
-							SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, DISABLE ), /* Disable interrupt. */
-							SSP_IntConfig( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS, ENABLE ), /* Enable interrupt. */
+							ROM_SSIIntDisable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ),/* Disable interrupt. */
+                            ROM_SSIIntEnable( pxSSP, sspRX_DATA_AVAILABLE_INTERRUPTS ), /* Enable interrupt. */
 							( ( uint8_t * ) pvBuffer ),	/* Data destination. */
 							xBytes,						/* Bytes to read. */
 							xReturn						/* Number of bytes read. */
@@ -438,7 +514,7 @@ const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control
 }
 /*-----------------------------------------------------------*/
 
-static size_t prvFillFifoFromBuffer( LPC_SSP_TypeDef * const pxSSP, uint8_t **ppucBuffer, const size_t xTotalBytes )
+static size_t prvFillFifoFromBuffer( const uint32_t pxSSP, uint8_t **ppucBuffer, const size_t xTotalBytes )
 {
 size_t xBytesSent;
 
@@ -452,18 +528,19 @@ size_t xBytesSent;
 	for( xBytesSent = 0U; ( xBytesSent < sspMAX_FIFO_DEPTH ) && ( xBytesSent < xTotalBytes ); xBytesSent++ )
 	{
 		/* While the Tx FIFO is not full, and the Rx FIFO is not full. */
-		if( ( ( pxSSP->SR & SSP_SR_TNF ) != 0 ) && ( ( pxSSP->SR & SSP_SR_RFF ) == 0 ) )
+		//if( ( ( pxSSP->SR & SSP_SR_TNF ) != 0 ) && ( ( pxSSP->SR & SSP_SR_RFF ) == 0 ) )
+        if( 1 )
 		{
 			if( *ppucBuffer == NULL )
 			{
 				/* There is no data to send.  This transmission is probably
 				just to	generate a clock so data can be received, so send out
 				0xff each time. */
-				pxSSP->DR = SSP_DR_BITMASK( ( ( uint16_t ) 0xffffU ) );
+                spi_char_send( pxSSP, 0xff );
 			}
 			else
 			{
-				pxSSP->DR = SSP_DR_BITMASK( ( uint16_t ) ( **ppucBuffer ) );
+                spi_char_send( pxSSP, ( **ppucBuffer ) );
 				( *ppucBuffer )++;
 			}
 		}
@@ -479,10 +556,10 @@ size_t xBytesSent;
 
 portBASE_TYPE FreeRTOS_SSP_ioctl( Peripheral_Descriptor_t const pxPeripheral, uint32_t ulRequest, void *pvValue )
 {
-Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
-uint32_t ulValue = ( uint32_t ) pvValue, ulInitSSP = pdFALSE;
-const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
-LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    Peripheral_Control_t * const pxPeripheralControl = ( Peripheral_Control_t * const ) pxPeripheral;
+    uint32_t ulValue = ( uint32_t ) pvValue, ulInitSSP = pdFALSE;
+    const int8_t cPeripheralNumber = diGET_PERIPHERAL_NUMBER( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
+    const uint32_t pxSSP = ( const uint32_t ) diGET_PERIPHERAL_BASE_ADDRESS( ( ( Peripheral_Control_t * const ) pxPeripheral ) );
 
 	taskENTER_CRITICAL();
 	{
@@ -491,25 +568,27 @@ LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( (
 			case ioctlUSE_INTERRUPTS :
 
 				/* Sanity check the array index. */
-				configASSERT( cPeripheralNumber < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
+				//configASSERT( cPeripheralNumber < ( int8_t ) ( sizeof( xIRQ ) / sizeof( IRQn_Type ) ) );
 
 				if( ulValue == pdFALSE )
 				{
-					NVIC_DisableIRQ( xIRQ[ cPeripheralNumber ] );
+                    ROM_IntDisable( xINT_SPIn[ cPeripheralNumber ] );
+					//NVIC_DisableIRQ( xIRQ[ cPeripheralNumber ] );
 				}
 				else
 				{
 					/* Enable the Rx interrupts only.  New data is sent if an
 					Rx interrupt makes space in the FIFO, so Tx interrupts are
 					not required. */
-					SSP_IntConfig( LPC_SSP1, SSP_INTCFG_TX, DISABLE );
-					SSP_IntConfig( pxSSP, sspALL_SSP_RX_INTERRUPTS, ENABLE );
+                    ROM_SSIIntDisable( pxSSP, SSI_TXFF );
+                    ROM_SSIIntEnable( pxSSP, sspALL_SSP_RX_INTERRUPTS );
 
 					/* Enable the interrupt and set its priority to the minimum
 					interrupt priority.  A separate command can be issued to raise
 					the priority if desired. */
-					NVIC_SetPriority( xIRQ[ cPeripheralNumber ], configSPI_INTERRUPT_PRIORITY );
-					NVIC_EnableIRQ( xIRQ[ cPeripheralNumber ] );
+					//NVIC_SetPriority( xIRQ[ cPeripheralNumber ], configSPI_INTERRUPT_PRIORITY );
+					//NVIC_EnableIRQ( xIRQ[ cPeripheralNumber ] );
+                    ROM_IntEnable( xINT_SPIn[ cPeripheralNumber ] );
 
 					/* If the Rx is configured to use interrupts, remember the
 					transfer control structure that should be used.  A reference
@@ -526,7 +605,7 @@ LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( (
 				being set must be lower than (ie numerically larger than)
 				configMAX_LIBRARY_INTERRUPT_PRIORITY. */
 				configASSERT( ulValue < configMAX_LIBRARY_INTERRUPT_PRIORITY );
-				NVIC_SetPriority( xIRQ[ cPeripheralNumber ], ulValue );
+				//NVIC_SetPriority( xIRQ[ cPeripheralNumber ], ulValue );
 				break;
 
 
@@ -544,18 +623,6 @@ LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( (
 				break;
 
 
-			case ioctlSET_SPI_CLOCK_PHASE : /* SSP_CPHA_FIRST or SSPCPHA_SECOND */
-				xSSPConfigurations[ cPeripheralNumber ].CPHA = ulValue;
-				ulInitSSP = pdTRUE;
-				break;
-
-
-			case ioctlSET_SPI_CLOCK_POLARITY : /* SSP_CPOL_HI or SSP_CPOL_LO. */
-
-				xSSPConfigurations[ cPeripheralNumber ].CPOL = ulValue;
-				break;
-
-
 			case ioctlSET_SPI_MODE : /* SSP_MASTER_MODE or SSP_SLAVE_MODE. */
 
 				xSSPConfigurations[ cPeripheralNumber ].Mode = ulValue;
@@ -570,10 +637,16 @@ LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( (
 
 		if( ulInitSSP == pdTRUE )
 		{
-			SSP_Cmd( pxSSP, DISABLE );
-			SSP_DeInit( pxSSP );
-			SSP_Init( pxSSP, &( xSSPConfigurations[ cPeripheralNumber ] ) );
-			SSP_Cmd( pxSSP, ENABLE );
+            ROM_SSIDisable( pxSSP );
+			//SSP_DeInit( pxSSP );
+			//SSP_Init( pxSSP, &( xSSPConfigurations[ cPeripheralNumber ] ) );
+            ROM_SSIConfigSetExpClk( pxSSP, 
+                                    g_ui32SysClock, 
+                                    xSSPConfigurations[ cPeripheralNumber ].FrameFormat, 
+                                    xSSPConfigurations[ cPeripheralNumber ].Mode, 
+                                    xSSPConfigurations[ cPeripheralNumber ].ClockRate, 
+                                    xSSPConfigurations[ cPeripheralNumber ].Databit);
+            ROM_SSIEnable(pxSSP);                    
 		}
 	}
 	taskEXIT_CRITICAL();
@@ -586,32 +659,37 @@ LPC_SSP_TypeDef * pxSSP = ( LPC_SSP_TypeDef * ) diGET_PERIPHERAL_BASE_ADDRESS( (
 	/* If the SSP driver is not being used, rename the interrupt handler.  This
 	will prevent it being installed in the vector table.  The linker will then
 	identify it as unused code, and remove it from the binary image. */
-	#define SSP1_IRQHandler Unused_SSP1_IRQHandler
+	#define SSI3_IRQHandler Unused_SSI3_IRQHandler
 #endif /* ioconfigINCLUDE_SSP */
 
-void SSP1_IRQHandler( void )
+void SSI3_IRQHandler( void )
 {
 uint32_t ulInterruptSource;
 volatile uint32_t usJunk, ulReceived = 0UL;
 portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-const unsigned portBASE_TYPE uxSSPNumber = 1UL;
+const unsigned portBASE_TYPE uxSSPNumber = 3UL;
 Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 
+
+    /* Determine the interrupt source. */
+	ulInterruptSource = ROM_SSIIntStatus( SDC_SSI_BASE, true );
+    // clear interrupt flags
+    ROM_SSIIntClear( SDC_SSI_BASE, ulInterruptSource );
 	/* Determine the interrupt source. */
-	ulInterruptSource = LPC_SSP1->MIS;
+	//ulInterruptSource = LPC_SSP1->MIS;
 
 	/* Clear receive overruns, and optionally assert. */
-	if( ( ulInterruptSource & SSP_INTSTAT_ROR ) != 0 )
+	/*if( ( ulInterruptSource & SSP_INTSTAT_ROR ) != 0 )
 	{
 		configASSERT( ( ulInterruptSource & SSP_INTSTAT_ROR ) == 0 );
 		LPC_SSP1->ICR = SSP_INTCLR_ROR;
-	}
+	}*/
 
 	/* Clear timeouts. */
-	if( ( ulInterruptSource & SSP_INTSTAT_RT ) != 0 )
+	/*if( ( ulInterruptSource & SSP_INTSTAT_RT ) != 0 )
 	{
 		LPC_SSP1->ICR = SSP_INTCLR_RT;
-	}
+	}*/
 
 	/* Is this a receive FIFO half full or receive timeout? */
 	if( ( ulInterruptSource & sspRX_DATA_AVAILABLE_INTERRUPTS ) != 0 )
@@ -628,11 +706,11 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 				/* The data being received is just in response to data
 				being sent,	not in response to data being read, just
 				just junk it. */
-				while( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 )
+				/*while( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 )
 				{
 					usJunk = LPC_SSP1->DR;
 					ulReceived++;
-				}
+				}*/
 			}
 			else
 			{
@@ -652,11 +730,11 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 							even if there is no more data to send. */
 							ioutilsRX_CHARS_INTO_CIRCULAR_BUFFER_FROM_ISR(
 																		pxRxTransferStruct, 	/* The structure that contains the reference to the circular buffer. */
-																		( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 ), 		/* While loop condition. */
-																		( LPC_SSP1->DR ),						/* The function that returns the chars. */
+																		//( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 ),     /* While loop condition. */
+                                                                        ( 1 == 1 ),     /* While loop condition. */
+																		( spi_char_get( SDC_SSI_BASE ) ),   /* The function that returns the chars. */
 																		ulReceived,
-																		xHigherPriorityTaskWoken
-																	);
+																		xHigherPriorityTaskWoken );
 						}
 						#endif /* ioconfigUSE_SSP_CIRCULAR_BUFFER_RX */
 						break;
@@ -666,7 +744,12 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 
 						#if ioconfigUSE_SSP_RX_CHAR_QUEUE == 1
 						{
-							ioutilsRX_CHARS_INTO_QUEUE_FROM_ISR( pxRxTransferStruct, ( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 ), ( LPC_SSP1->DR ), ulReceived, xHigherPriorityTaskWoken );
+							ioutilsRX_CHARS_INTO_QUEUE_FROM_ISR( pxRxTransferStruct, 
+                                                            //( ( LPC_SSP1->SR & SSP_SR_RNE ) != 0 ), 
+                                                            ( 1 == 1 ), 
+                                                            ( spi_char_get( SDC_SSI_BASE ) ), 
+                                                            ulReceived, 
+                                                            xHigherPriorityTaskWoken );
 						}
 						#endif /* ioconfigUSE_SSP_RX_CHAR_QUEUE */
 						break;
@@ -688,7 +771,10 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 
 					#if ioconfigUSE_SSP_ZERO_COPY_TX == 1
 					{
-						iouitlsTX_CHARS_FROM_ZERO_COPY_BUFFER_FROM_ISR( pxTxTransferStruct, ( ( ulReceived-- ) > 0 ), ( LPC_SSP1->DR = ucChar), xHigherPriorityTaskWoken );
+						iouitlsTX_CHARS_FROM_ZERO_COPY_BUFFER_FROM_ISR( pxTxTransferStruct, 
+                                                                    ( ( ulReceived-- ) > 0 ), 
+                                                                    ( spi_char_send( SDC_SSI_BASE, ucChar ) ), 
+                                                                    xHigherPriorityTaskWoken );
 					}
 					#endif /* ioconfigUSE_SSP_ZERO_COPY_TX */
 					break;
@@ -698,7 +784,10 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 
 					#if ioconfigUSE_SSP_TX_CHAR_QUEUE == 1
 					{
-						ioutilsTX_CHARS_FROM_QUEUE_FROM_ISR( pxTxTransferStruct, ( ( ulReceived-- ) > 0 ), ( LPC_SSP1->DR = SSP_DR_BITMASK( ( uint16_t ) ucChar ) ), xHigherPriorityTaskWoken );
+						ioutilsTX_CHARS_FROM_QUEUE_FROM_ISR( pxTxTransferStruct, 
+                                                            ( ( ulReceived-- ) > 0 ), 
+                                                            ( spi_char_send( SDC_SSI_BASE, ucChar ) ), 
+                                                            xHigherPriorityTaskWoken );
 					}
 					#endif /* ioconfigUSE_SSP_TX_CHAR_QUEUE */
 					break;
@@ -722,4 +811,59 @@ Transfer_Control_t *pxTxTransferStruct, *pxRxTransferStruct;
 	switch should be performed before the interrupt exists.  That ensures the
 	unblocked (higher priority) task is returned to immediately. */
 	portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+}
+
+static uint32_t 
+spi_char_get(uint32_t spi_base) {
+
+    uint32_t rec_char;
+    ROM_SSIDataPut(spi_base, 0xFF); /* write dummy data */
+    ROM_SSIDataGet(spi_base, &rec_char);
+
+    return rec_char;
+}
+
+static void 
+spi_char_send(uint32_t spi_base, unsigned char data) {
+
+    uint32_t rec_char;
+
+    ROM_SSIDataPut(spi_base, data); /* Write the data to the tx fifo */
+    ROM_SSIDataGet(spi_base, &rec_char); /* flush data read during the write */
+}
+
+static uint32_t
+spi_write( uint32_t pxSSP, SSP_DATA_SETUP_Type *pxSSPTransferDefinition ) {
+
+    uint8_t *write_data;
+    write_data = (uint8_t *)pxSSPTransferDefinition->tx_data;
+
+    for( pxSSPTransferDefinition->tx_cnt = 0; pxSSPTransferDefinition->tx_cnt < pxSSPTransferDefinition->length; pxSSPTransferDefinition->tx_cnt++ ) {
+        spi_char_send( pxSSP, *write_data );   
+        write_data++;
+    }
+
+    if (pxSSPTransferDefinition->tx_data != NULL) {
+        return pxSSPTransferDefinition->tx_cnt;
+    } else {
+        return (0);
+    }
+}
+
+static uint32_t
+spi_read( uint32_t pxSSP, SSP_DATA_SETUP_Type *pxSSPTransferDefinition ) {
+
+    uint8_t *read_data;
+    read_data = (uint8_t *)pxSSPTransferDefinition->rx_data;
+
+    for( pxSSPTransferDefinition->rx_cnt = 0; pxSSPTransferDefinition->rx_cnt < pxSSPTransferDefinition->length; pxSSPTransferDefinition->rx_cnt++ ) {
+        *read_data = spi_char_get( pxSSP );   
+        read_data++;
+    }
+
+    if (pxSSPTransferDefinition->rx_data != NULL) {
+        return pxSSPTransferDefinition->rx_cnt;
+    } else {
+        return (0);
+    }
 }

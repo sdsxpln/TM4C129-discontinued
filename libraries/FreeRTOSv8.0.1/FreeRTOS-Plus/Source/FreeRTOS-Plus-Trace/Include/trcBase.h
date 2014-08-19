@@ -146,7 +146,7 @@ typedef struct
 #if (USE_16BIT_OBJECT_HANDLES == 1)	
     objectHandleType NumberOfObjectsPerClass[2*((TRACE_NCLASSES+1)/2)];
 #else
-	objectHandleType NumberOfObjectsPerClass[4*((TRACE_NCLASSES+3)/4)];
+    objectHandleType NumberOfObjectsPerClass[4*((TRACE_NCLASSES+3)/4)];
 #endif
 
     /* Allocation size rounded up to the closest multiple of 4 */
@@ -193,9 +193,9 @@ typedef struct
 
 typedef struct
 {
-	uint8_t type;
-	uint8_t dummy;
-	uint16_t dts;    /* differential timestamp - time since last event */
+    uint8_t type;
+    uint8_t dummy;
+    uint16_t dts;    /* differential timestamp - time since last event */
 } LPEvent;
 
 typedef struct
@@ -256,22 +256,22 @@ typedef struct
 
 typedef struct
 {
-	uint8_t type;
+    uint8_t type;
 
-	uint8_t xps_8;
-	uint16_t xps_16;
+    uint8_t xps_8;
+    uint16_t xps_16;
 } XPSEvent;
 
 typedef struct{
-	uint8_t type;
-	uint8_t dts;
-	uint16_t size;
+    uint8_t type;
+    uint8_t dts;
+    uint16_t size;
 } MemEventSize;
 
 typedef struct{
-	uint8_t type;
-	uint8_t addr_high;
-	uint16_t addr_low;
+    uint8_t type;
+    uint8_t addr_high;
+    uint16_t addr_low;
 } MemEventAddr;
 
 /*******************************************************************************
@@ -281,24 +281,24 @@ typedef struct{
 #if (USE_SEPARATE_USER_EVENT_BUFFER == 1)
 typedef struct
 {
-	traceLabel name;
-	traceLabel defaultFormat;
+    traceLabel name;
+    traceLabel defaultFormat;
 } ChannelFormatPair;
 
 typedef struct
 {
-	uint16_t bufferID;
-	uint16_t version;
-	uint32_t wraparoundCounter;
-	uint32_t numberOfSlots;
-	uint32_t nextSlotToWrite;
-	uint8_t numberOfChannels;
-	uint8_t padding1;
-	uint8_t padding2;
-	uint8_t padding3;
-	ChannelFormatPair channels[CHANNEL_FORMAT_PAIRS+1];
-	uint8_t channelBuffer[(USER_EVENT_BUFFER_SIZE + 3) & 0xFFFFFFFC]; /* 1 byte per slot, with padding for 4 byte alignment */
-	uint8_t dataBuffer[USER_EVENT_BUFFER_SIZE * 4]; /* 4 bytes per slot */
+    uint16_t bufferID;
+    uint16_t version;
+    uint32_t wraparoundCounter;
+    uint32_t numberOfSlots;
+    uint32_t nextSlotToWrite;
+    uint8_t numberOfChannels;
+    uint8_t padding1;
+    uint8_t padding2;
+    uint8_t padding3;
+    ChannelFormatPair channels[CHANNEL_FORMAT_PAIRS+1];
+    uint8_t channelBuffer[(USER_EVENT_BUFFER_SIZE + 3) & 0xFFFFFFFC]; /* 1 byte per slot, with padding for 4 byte alignment */
+    uint8_t dataBuffer[USER_EVENT_BUFFER_SIZE * 4]; /* 4 bytes per slot */
 
 } UserEventBuffer;
 #endif
@@ -364,15 +364,15 @@ typedef struct
 
     /* Not used, remains for compatibility and future use */
     uint8_t notused[28];
-
-	/* The amount of heap memory remaining at the last malloc or free event */ 
-	uint32_t heapMemUsage;
+    
+    /* The amount of heap memory remaining at the last malloc or free event */ 
+    uint32_t heapMemUsage;
 
     /* 0xF0F0F0F0 - for control only */
     int32_t debugMarker0;
 
-	/* Set to value of USE_16BIT_OBJECT_HANDLES */
-	uint32_t isUsing16bitHandles;
+    /* Set to value of USE_16BIT_OBJECT_HANDLES */
+    uint32_t isUsing16bitHandles;
 
     /* The Object Property Table holds information about currently active
     tasks, queues, and other recorded objects. This is updated on each
@@ -415,11 +415,11 @@ typedef struct
     uint8_t eventData[ EVENT_BUFFER_SIZE * 4 ];
 
 #if (USE_SEPARATE_USER_EVENT_BUFFER == 1)
-	UserEventBuffer userEventBuffer;
+    UserEventBuffer userEventBuffer;
 #endif
 
-	/* This should always be 0 */
-	uint32_t endOfSecondaryBlocks;
+    /* This should always be 0 */
+    uint32_t endOfSecondaryBlocks;
 
     uint8_t endmarker0;
     uint8_t endmarker1;
@@ -527,8 +527,8 @@ RecorderDataPtr->ObjectPropertyTable.objbytes[uiIndexOfObject(handle, objectclas
 #define TRACE_ASSERT(eval, msg, defRetVal) \
 if (!(eval)) \
 { \
-	vTraceError("TRACE_ASSERT: " msg); \
-	return defRetVal; \
+    vTraceError("TRACE_ASSERT: " msg); \
+    return defRetVal; \
 }
 #else
 #define TRACE_ASSERT(eval, msg, defRetVal)

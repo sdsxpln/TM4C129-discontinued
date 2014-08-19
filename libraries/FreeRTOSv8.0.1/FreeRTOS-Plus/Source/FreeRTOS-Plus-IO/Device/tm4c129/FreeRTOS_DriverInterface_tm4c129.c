@@ -45,7 +45,6 @@
 #include "FreeRTOS_DriverInterface.h"
 #include "FreeRTOS_uart.h"
 #include "FreeRTOS_ssp.h"
-#include "FreeRTOS_i2c.h"
 
 portBASE_TYPE vFreeRTOS_tm4c129_PopulateFunctionPointers( const Peripheral_Types_t ePeripheralType, Peripheral_Control_t * const pxPeripheralControl )
 {
@@ -71,16 +70,6 @@ portBASE_TYPE xReturn = pdFALSE;
 				xReturn = FreeRTOS_SSP_open( pxPeripheralControl );
 			}
 			#endif /* ioconfigINCLUDE_SSP */
-			break;
-			
-
-		case eI2C_TYPE :
-		
-			#if ioconfigINCLUDE_I2C == 1
-			{
-				xReturn = FreeRTOS_I2C_open( pxPeripheralControl );
-			}
-			#endif /* ioconfigINCLUDE_I2C */
 			break;
 
 

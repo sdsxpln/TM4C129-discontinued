@@ -34,8 +34,18 @@
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
+ * Modified by:  Joakim Myrland
+ * website:      www.LDA.as
+ * email:        joakim.myrland@LDA.as
+ * project:      https://github.com/Lindem-Data-Acquisition-AS/TM4C129/
+ *
+ * Added these missing functions:
+ * sys_sem_valid(s)
+ * sys_sem_set_invalid(s)
+ * sys_mbox_set_invalid(m)
+ *
  */
-
+ 
 /* Copyright (c) 2008 Texas Instruments Incorporated */
 
 /* lwIP includes. */
@@ -105,6 +115,9 @@ sys_arch_unprotect(sys_prot_t lev)
 #endif /* SYS_LIGHTWEIGHT_PROT */
 
 #else /* NO_SYS */
+
+#include <stdlib.h>
+#include "lwip/stats.h"
 
 /* A structure to contain the variables for a sys_thread_t. */
 typedef struct {
@@ -294,6 +307,22 @@ sys_sem_free(sys_sem_t *sem)
 #if SYS_STATS
   STATS_DEC(sys.sem.used);
 #endif /* SYS_STATS */
+}
+
+/** Check if a sempahore is valid/allocated: return 1 for valid, 0 for invalid */
+int 
+sys_sem_valid(sys_sem_t *sem)
+{
+    //api_msg_msg->netconn->sys_sem_t    
+    return (sem != NULL);
+}
+
+/** Set a semaphore invalid so that sys_sem_valid returns 0 */
+void 
+sys_sem_set_invalid(sys_sem_t *sem)
+{
+	//*sem = (const struct x){ 0 };
+    sem = calloc(1, sizeof(sys_sem_t));
 }
 
 /**
@@ -512,6 +541,13 @@ sys_mbox_valid(sys_mbox_t *mbox)
   else{
       return 1;
   }
+}
+
+void 
+sys_mbox_set_invalid(sys_mbox_t *mbox)
+{
+	//*mbox = (const struct x){ 0 };
+    mbox = calloc(1, sizeof(sys_mbox_t));
 }
 
 /**

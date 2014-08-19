@@ -48,6 +48,15 @@
  ******************************************************************************/
 
 /*******************************************************************************
+ * TRACE_SCHEDULING_ONLY
+ *
+ * When defined disables all events except scheduling.
+ * Useful for Free Edition users.
+ ******************************************************************************/
+
+//#define TRACE_SCHEDULING_ONLY
+
+/*******************************************************************************
  * EVENT_BUFFER_SIZE
  *
  * Macro which should be defined as an integer value.
@@ -55,9 +64,11 @@
  * This defines the capacity of the event buffer, i.e., the number of records
  * it may store. Each registered event typically use one record (4 byte), but
  * vTracePrintF may use multiple records depending on the number of data args.
+ 
+ * Note: Free Edition supports a maximum buffer size of 1024.
  ******************************************************************************/
 
-#define EVENT_BUFFER_SIZE 4000 /* Adjust wrt. to available RAM */
+#define EVENT_BUFFER_SIZE 4096 /* Adjust wrt. to available RAM */
 
 
 /*******************************************************************************
@@ -80,7 +91,6 @@
  ******************************************************************************/
 
 #define USE_LINKER_PRAGMA 0
-
 
 /*******************************************************************************
  * SYMBOL_TABLE_SIZE
@@ -245,7 +255,7 @@
  * true. If the condition is false, vTraceError() will be called.
  *****************************************************************************/
 #define USE_TRACE_ASSERT 1
-
+ 
 /******************************************************************************
  * INCLUDE_FLOAT_SUPPORT
  *
@@ -445,7 +455,6 @@
  *****************************************************************************/
 #define USE_IMPLICIT_IFE_RULES 1
 
-
 /******************************************************************************
  * USE_16BIT_OBJECT_HANDLES
  *
@@ -500,10 +509,10 @@
 *
 * An integer constant that selects between two options for the critical
 * sections of the recorder library.
- *
+*
 *   0: The default FreeRTOS critical section (BASEPRI) - default setting
 *   1: Always disable ALL interrupts (using PRIMASK)
- *
+*
 * Option 0 uses the standard FreeRTOS macros for critical sections.
 * However, on Cortex-M devices they only disable interrupts with priorities 
 * below a certain configurable level, while higher priority ISRs remain active.
@@ -513,7 +522,7 @@
 * the interrupt priority. This mode may however cause higher IRQ latencies
 * (some microseconds) since ALL configurable interrupts are disabled during 
 * the recorder's critical sections in this mode, using the PRIMASK register.
- ******************************************************************************/
+******************************************************************************/
 #define USE_PRIMASK_CS 0
 
 /******************************************************************************

@@ -1,0 +1,21 @@
+../libraries/uhttp-ethernut/src/utils.o: \
+ ../libraries/uhttp-ethernut/src/utils.c \
+ ../libraries/uhttp-ethernut/inc/pro/uhttp/utils.h \
+ ../libraries/uhttp-ethernut/inc/memdebug.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/stdlib.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/ieeefp.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/_ansi.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/newlib.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/config.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/features.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/include/stddef.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/reent.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/_ansi.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/_default_types.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/lock.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/machine/stdlib.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/include/stdarg.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/string.h \
+ c:\ti\ccsv6\tools\compiler\gcc-arm-none-eabi-4_7-2013q3\bin\../lib/gcc/arm-none-eabi/4.7.4/../../../../arm-none-eabi/include/sys/string.h
