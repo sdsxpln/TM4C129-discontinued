@@ -1,3 +1,7 @@
+    ***************************************************************************************
+    LICENSE
+    ***************************************************************************************
+
     TM4C129 FreeRTOS (w/ lwIP/HTTP server & FreeRTOS+IO/CLI)
 
     Copyright (C) 2014  Lindem Data Acquisition AS
@@ -21,14 +25,16 @@
     project:  https://github.com/Lindem-Data-Acquisition-AS/TM4C129/
 
 
-    ***************************************************************************
+    ***************************************************************************************
+    IMPORTANT INFORMATION
+    ***************************************************************************************
     
     
     This project contains libraries released under the GPLv2 license. 
     Because of this all code is required to be compatible with the GPLv2 license.
-    The code supports the ARM GCC compiler. 
-    There is no "official" support for other compilers.
-
+    As a result, several files released by TI under the TivaWare_C_Series library
+    can not be used, e.g. Makefile, startup_gcc.c and linker file.
+    
     3rd party libraries have been added for completeness. 
     
     The following 3rd party libraries in the "libraries" folder has been modified:
@@ -39,3 +45,17 @@
         if LWIP_PTPD is diabled in lwipopts.h, the default pbuf.h file can be used.
     
     
+    ***************************************************************************************
+    CURRENT STATUS
+    ***************************************************************************************
+    
+    
+    We have successfully implemented GPLv2 compatible alternatives for the 
+    Makefile, startup_gcc and linker file for this project. We will upload these files 
+    once we have finished integrating the libraries with a complete makefile example.
+    These files will support the ARM GCC compiler, and works under Cygwin and Linux.
+    We intend to support vanilla windows but... for now, just install Cygwin.
+    
+    Currently implementing Newlib support, as this is not done by TI as default. Newlib is 
+    needed for runtime stats by FreeRTOS, as well as the FreeRTOS+CLI command register+++
+    We are also finishing the lwIP library example with http server.
