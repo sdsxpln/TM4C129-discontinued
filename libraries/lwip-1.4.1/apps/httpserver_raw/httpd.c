@@ -123,7 +123,7 @@
 #endif
 
 /** Priority for tcp pcbs created by HTTPD (very low by default).
- *  Lower priorities get killed first when running out of memroy.
+ *  Lower priorities get killed first when running out of memory.
  */
 #ifndef HTTPD_TCP_PRIO
 #define HTTPD_TCP_PRIO                      TCP_PRIO_MIN
@@ -197,7 +197,7 @@
 /** Set this to 0 to not send the SSI tag (default is on, so the tag will
  * be sent in the HTML page */
 #ifndef LWIP_HTTPD_SSI_INCLUDE_TAG
-#define LWIP_HTTPD_SSI_INCLUDE_TAG           1
+#define LWIP_HTTPD_SSI_INCLUDE_TAG           0
 #endif
 
 /** Set this to 1 to call tcp_abort when tcp_close fails with memory error.

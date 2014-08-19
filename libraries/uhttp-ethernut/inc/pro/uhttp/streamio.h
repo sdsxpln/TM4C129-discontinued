@@ -47,8 +47,6 @@
 #include <unistd.h>
 #elif defined(RTOS_CHIBIOS) /* @@MF */
 #include <pro/uhttp/os/lwip/streamio.h>
-#elif defined(RTOS_FREERTOS) /* @@MF */
-#include <pro/uhttp/os/lwip/streamio.h>
 #else
 #include <pro/uhttp/os/nut/streamio.h>
 #endif

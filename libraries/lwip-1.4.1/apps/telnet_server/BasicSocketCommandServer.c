@@ -1,6 +1,6 @@
 /*
     FreeRTOS V7.3.0 - Copyright (C) 2012 Real Time Engineers Ltd.
-    
+	
 
     ***************************************************************************
      *                                                                       *
@@ -81,141 +81,141 @@ int8_t cInChar, cInputIndex, *pcOutputString;
 static int8_t cInputString[ cmdMAX_INPUT_SIZE ] = { 0 }, cLastInputString[ cmdMAX_INPUT_SIZE ] = { 0 };
 portBASE_TYPE xReturned;
 
-    ( void ) pvParameters;
+	( void ) pvParameters;
 
-    lSocket = lwip_socket( AF_INET, SOCK_STREAM, 0 );
+	lSocket = lwip_socket( AF_INET, SOCK_STREAM, 0 );
 
-    if( lSocket >= 0 )
-    {
-        /* Obtain the address of the output buffer.  Note there is no mutual
-        exclusion on this buffer as it is assumed only one command console
-        interface will be used at any one time. */
-        pcOutputString = FreeRTOS_CLIGetOutputBuffer();
+	if( lSocket >= 0 )
+	{
+		/* Obtain the address of the output buffer.  Note there is no mutual
+		exclusion on this buffer as it is assumed only one command console
+		interface will be used at any one time. */
+		pcOutputString = FreeRTOS_CLIGetOutputBuffer();
 
-        memset((char *)&sLocalAddr, 0, sizeof(sLocalAddr));
-        sLocalAddr.sin_family = AF_INET;
-        sLocalAddr.sin_len = sizeof(sLocalAddr);
-        sLocalAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        sLocalAddr.sin_port = ntohs( ( ( uint16_t ) 23 ) );
+		memset((char *)&sLocalAddr, 0, sizeof(sLocalAddr));
+		sLocalAddr.sin_family = AF_INET;
+		sLocalAddr.sin_len = sizeof(sLocalAddr);
+		sLocalAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+		sLocalAddr.sin_port = ntohs( ( ( uint16_t ) 23 ) );
 
-        if( lwip_bind( lSocket, ( struct sockaddr *) &sLocalAddr, sizeof( sLocalAddr ) ) < 0 ) 
-        {
-            lwip_close( lSocket );
-            vTaskDelete( NULL );
-        }
+		if( lwip_bind( lSocket, ( struct sockaddr *) &sLocalAddr, sizeof( sLocalAddr ) ) < 0 ) 
+		{
+			lwip_close( lSocket );
+			vTaskDelete( NULL );
+		}
 
-        if( lwip_listen( lSocket, 20 ) != 0 )
-        {
-            lwip_close( lSocket );
-            vTaskDelete( NULL );
-        }
+		if( lwip_listen( lSocket, 20 ) != 0 )
+		{
+			lwip_close( lSocket );
+			vTaskDelete( NULL );
+		}
 
-        /* Ensure the input string starts clear. */
-        cInputString[ 0 ] = 0;
-        cLastInputString[ 0 ] = 0;
-        
-        for( ;; )
-        {
+		/* Ensure the input string starts clear. */
+		cInputString[ 0 ] = 0;
+		cLastInputString[ 0 ] = 0;
+		
+		for( ;; )
+		{
 
-            lClientFd = lwip_accept( lSocket, ( struct sockaddr * ) &client_addr, ( u32_t * ) &lAddrLen );
+			lClientFd = lwip_accept( lSocket, ( struct sockaddr * ) &client_addr, ( u32_t * ) &lAddrLen );
 
-            if( lClientFd > 0L )
-            {
-                lwip_send( lClientFd, pcWelcomeMessage, strlen( ( const char * ) pcWelcomeMessage ), 0 );
+			if( lClientFd > 0L )
+			{
+				lwip_send( lClientFd, pcWelcomeMessage, strlen( ( const char * ) pcWelcomeMessage ), 0 );
 
-                cInputIndex = 0;
-                memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
+				cInputIndex = 0;
+				memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
 
-                do
-                {					
-                    lBytes = lwip_recv( lClientFd, &cInChar, sizeof( cInChar ), 0 );
-                    
-                    if( lBytes > 0L ) 
-                    {
-                        if( cInChar == '\n' )
-                        {
-                            /* The input string has been terminated.  Was the 
-                            input a quit command? */
-                            if( strcmp( "quit", ( const char * ) cInputString ) == 0 )
-                            {
-                                /* Set lBytes to 0 to close the connection. */
-                                lBytes = 0L;
-                            }
-                            else
-                            {
-                                /* The input string was not a quit command.  
-                                Pass the string to the command interpreter. */
+				do
+				{					
+					lBytes = lwip_recv( lClientFd, &cInChar, sizeof( cInChar ), 0 );
+					
+					if( lBytes > 0L ) 
+					{
+						if( cInChar == '\n' )
+						{
+							/* The input string has been terminated.  Was the 
+							input a quit command? */
+							if( strcmp( "quit", ( const char * ) cInputString ) == 0 )
+							{
+								/* Set lBytes to 0 to close the connection. */
+								lBytes = 0L;
+							}
+							else
+							{
+								/* The input string was not a quit command.  
+								Pass the string to the command interpreter. */
 
-                                /* See if the command is empty, indicating that the last command is
-                                to be executed again. */
-                                if( cInputIndex == 0 )
-                                {
-                                    strcpy( ( char * ) cInputString, ( char * ) cLastInputString );
-                                }
-                                
-                                /* Transmit a line separator, just to make the
-                                output easier to read. */
-                                lwip_send( lClientFd, "\r\n", strlen( "\r\n" ), 0 );
+								/* See if the command is empty, indicating that the last command is
+								to be executed again. */
+								if( cInputIndex == 0 )
+								{
+									strcpy( ( char * ) cInputString, ( char * ) cLastInputString );
+								}
+								
+								/* Transmit a line separator, just to make the
+								output easier to read. */
+								lwip_send( lClientFd, "\r\n", strlen( "\r\n" ), 0 );
 
-                                do
-                                {
-                                    /* Ensure there is not a string lingering in
-                                    the output buffer. */
-                                    pcOutputString[ 0 ] = 0x00;
-                                    xReturned = FreeRTOS_CLIProcessCommand( cInputString, pcOutputString, configCOMMAND_INT_MAX_OUTPUT_SIZE );
-                                    lwip_send( lClientFd, pcOutputString, strlen( ( const char * ) pcOutputString ), 0 );
+								do
+								{
+									/* Ensure there is not a string lingering in
+									the output buffer. */
+									pcOutputString[ 0 ] = 0x00;
+									xReturned = FreeRTOS_CLIProcessCommand( cInputString, pcOutputString, configCOMMAND_INT_MAX_OUTPUT_SIZE );
+									lwip_send( lClientFd, pcOutputString, strlen( ( const char * ) pcOutputString ), 0 );
 
-                                } while( xReturned != pdFALSE );
+								} while( xReturned != pdFALSE );
 
-                                /* All the strings generated by the input 
-                                command have been sent.  Clear the input
-                                string ready to receive the next command. 
-                                Remember the command that was just processed 
-                                first in case it is to be processed again. */
-                                strcpy( ( char * ) cLastInputString, ( char * ) cInputString );
-                                cInputIndex = 0;
-                                memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
-                                lwip_send( lClientFd, pcEndOfCommandOutputString, strlen( ( const char * ) pcEndOfCommandOutputString ), 0 );
-                            }
-                        }
-                        else
-                        {
-                            if( cInChar == '\r' )
-                            {
-                                /* Ignore the character. */
-                            }
-                            else if( cInChar == '\b' )
-                            {
-                                /* Backspace was pressed.  Erase the last 
-                                character in the string - if any. */
-                                if( cInputIndex > 0 )
-                                {
-                                    cInputIndex--;
-                                    cInputString[ cInputIndex ] = '\0';
-                                }
-                            }
-                            else
-                            {
-                                /* A character was entered.  Add it to the string
-                                entered so far.  When a \n is entered the complete
-                                string will be passed to the command interpreter. */
-                                if( cInputIndex < cmdMAX_INPUT_SIZE )
-                                {
-                                    cInputString[ cInputIndex ] = cInChar;
-                                    cInputIndex++;
-                                }
-                            }
-                        }
-                    }
+								/* All the strings generated by the input 
+								command have been sent.  Clear the input
+								string ready to receive the next command. 
+								Remember the command that was just processed 
+								first in case it is to be processed again. */
+								strcpy( ( char * ) cLastInputString, ( char * ) cInputString );
+								cInputIndex = 0;
+								memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
+								lwip_send( lClientFd, pcEndOfCommandOutputString, strlen( ( const char * ) pcEndOfCommandOutputString ), 0 );
+							}
+						}
+						else
+						{
+							if( cInChar == '\r' )
+							{
+								/* Ignore the character. */
+							}
+							else if( cInChar == '\b' )
+							{
+								/* Backspace was pressed.  Erase the last 
+								character in the string - if any. */
+								if( cInputIndex > 0 )
+								{
+									cInputIndex--;
+									cInputString[ cInputIndex ] = '\0';
+								}
+							}
+							else
+							{
+								/* A character was entered.  Add it to the string
+								entered so far.  When a \n is entered the complete
+								string will be passed to the command interpreter. */
+								if( cInputIndex < cmdMAX_INPUT_SIZE )
+								{
+									cInputString[ cInputIndex ] = cInChar;
+									cInputIndex++;
+								}
+							}
+						}
+					}
 
-                } while( lBytes > 0L );
+				} while( lBytes > 0L );
 
-                 lwip_close( lClientFd );
-            }
-        } 
-    }
+				 lwip_close( lClientFd );
+			}
+		} 
+	}
 
-    /* Will only get here if a listening socket could not be created. */
-    vTaskDelete( NULL );
+	/* Will only get here if a listening socket could not be created. */
+	vTaskDelete( NULL );
 }
 

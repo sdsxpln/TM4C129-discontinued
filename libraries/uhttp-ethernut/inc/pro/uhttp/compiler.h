@@ -48,8 +48,6 @@
 #include <pro/uhttp/os/win/compiler.h>
 #elif defined(RTOS_CHIBIOS) /* @@MF */
 #include <pro/uhttp/os/lwip/compiler.h>
-#elif defined(RTOS_FREERTOS) /* @@MF */
-#include <pro/uhttp/os/lwip/compiler.h>
 #else
 #include <pro/uhttp/os/nut/compiler.h>
 #endif

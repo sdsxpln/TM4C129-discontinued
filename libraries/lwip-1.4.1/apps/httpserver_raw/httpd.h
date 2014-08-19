@@ -53,7 +53,7 @@
 
 /** Set this to 1 to support HTTP POST */
 #ifndef LWIP_HTTPD_SUPPORT_POST
-#define LWIP_HTTPD_SUPPORT_POST   0
+#define LWIP_HTTPD_SUPPORT_POST   1
 #endif
 
 

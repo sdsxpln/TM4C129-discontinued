@@ -55,7 +55,7 @@
  * (e.g. so they are displayed on a remote telnet)
  */
 #ifndef SHELL_ECHO
-#define SHELL_ECHO 0
+#define SHELL_ECHO 1
 #endif
 
 #define BUFSIZE             1024
@@ -1096,50 +1096,66 @@ shell_main(struct netconn *conn)
 #endif /* SHELL_ECHO */
 
   do {
+      
     ret = netconn_recv_tcp_pbuf(conn, &p);
+    
     if (ret == ERR_OK) {
+        
       pbuf_copy_partial(p, &buffer[len], BUFSIZE - len, 0);
       cur_len = p->tot_len;
       len += cur_len;
+      
 #if SHELL_ECHO
-      echomem = mem_malloc(cur_len);
+      echomem = mem_malloc(cur_len);      
       if (echomem != NULL) {
         pbuf_copy_partial(p, echomem, cur_len, 0);
         netconn_write(conn, echomem, cur_len, NETCONN_COPY);
         mem_free(echomem);
-      }
+      }      
 #endif /* SHELL_ECHO */
+      
       pbuf_free(p);
       if (((len > 0) && ((buffer[len-1] == '\r') || (buffer[len-1] == '\n'))) ||
           (len >= BUFSIZE)) {
+              
         if (buffer[0] != 0xff && 
            buffer[1] != 0xfe) {
           err = parse_command(&com, len);
+          
           if (err == ESUCCESS) {
             com.conn = conn;
             err = com.exec(&com);
           }
+          
           if (err == ECLOSED) {
             printf("Closed"NEWLINE);
             shell_error(err, conn);
             goto close;
           }
+          
           if (err != ESUCCESS) {
             shell_error(err, conn);
           }
+          
         } else {
+            
           sendstr(NEWLINE NEWLINE
                   "lwIP simple interactive shell."NEWLINE
                   "(c) Copyright 2001, Swedish Institute of Computer Science."NEWLINE
                   "Written by Adam Dunkels."NEWLINE
                   "For help, try the \"help\" command."NEWLINE, conn);
+              
         }
+        
         if (ret == ERR_OK) {
           prompt(conn);
         }
-        len = 0;
+        
+        len = 0;        
       }
+          
     }
+    
   } while (ret == ERR_OK);
   printf("err %s"NEWLINE, lwip_strerr(ret));
 
@@ -1160,13 +1176,13 @@ shell_thread(void *arg)
   struct netconn *conn, *newconn;
   err_t err;
   LWIP_UNUSED_ARG(arg);
-
+  
   conn = netconn_new(NETCONN_TCP);
   netconn_bind(conn, NULL, 23);
   netconn_listen(conn);
 
   while (1) {
-    err = netconn_accept(conn, &newconn);
+    err = netconn_accept(conn, &newconn);    
     if (err == ERR_OK) {
       shell_main(newconn);
       netconn_delete(newconn);
@@ -1176,8 +1192,9 @@ shell_thread(void *arg)
 /*-----------------------------------------------------------------------------------*/
 void
 shell_init(void)
-{
-  sys_thread_new("shell_thread", shell_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+{ 
+    sys_thread_new("shell_thread", shell_thread, NULL, configCOMMAND_INTERPRETER_STACK_SIZE, configCOMMAND_INTERPRETER_TASK_PRIORITY);
+  //sys_thread_new("shell_thread", shell_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
 #endif /* LWIP_NETCONN */

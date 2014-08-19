@@ -1,6 +1,6 @@
 /*
     FreeRTOS V7.3.0 - Copyright (C) 2012 Real Time Engineers Ltd.
-    
+	
 
     ***************************************************************************
      *                                                                       *
@@ -101,8 +101,8 @@ is changed, then the index position defined by the #defines such as
 ssiTASK_STATS_INDEX above must also be updated. */
 static const char *pccSSITags[] = 
 {
-    "rtos_stats",
-    "run_stats"
+	"rtos_stats",
+	"run_stats"
 };
 
 /*-----------------------------------------------------------*/
@@ -114,30 +114,30 @@ ip_addr_t xIPAddr, xNetMask, xGateway;
 extern err_t ethernetif_init( struct netif *xNetIf );
 static struct netif xNetIf;
 
-    ( void ) pvArgument;
+	( void ) pvArgument;
 
-    /* Set up the network interface. */
-    ip_addr_set_zero( &xGateway );
-    ip_addr_set_zero( &xIPAddr );
-    ip_addr_set_zero( &xNetMask );
+	/* Set up the network interface. */
+	ip_addr_set_zero( &xGateway );
+	ip_addr_set_zero( &xIPAddr );
+	ip_addr_set_zero( &xNetMask );
 
-    LWIP_PORT_INIT_GW(&xGateway);
-    LWIP_PORT_INIT_IPADDR(&xIPAddr);
-    LWIP_PORT_INIT_NETMASK(&xNetMask);
+	LWIP_PORT_INIT_GW(&xGateway);
+	LWIP_PORT_INIT_IPADDR(&xIPAddr);
+	LWIP_PORT_INIT_NETMASK(&xNetMask);
 
-    netif_set_default( netif_add( &xNetIf, &xIPAddr, &xNetMask, &xGateway, NULL, ethernetif_init, tcpip_input ) );
-    netif_set_up( &xNetIf );
+	netif_set_default( netif_add( &xNetIf, &xIPAddr, &xNetMask, &xGateway, NULL, ethernetif_init, tcpip_input ) );
+	netif_set_up( &xNetIf );
 
-    /* Install the server side include handler. */
-    http_set_ssi_handler( uslwIPAppsSSIHandler, pccSSITags, sizeof( pccSSITags ) / sizeof( char * ) );
+	/* Install the server side include handler. */
+	http_set_ssi_handler( uslwIPAppsSSIHandler, pccSSITags, sizeof( pccSSITags ) / sizeof( char * ) );
 
-    /* Create the httpd server from the standard lwIP code.  This demonstrates
-    use of the lwIP raw API. */
-    httpd_init();
+	/* Create the httpd server from the standard lwIP code.  This demonstrates
+	use of the lwIP raw API. */
+	httpd_init();
 
-    /* Create the FreeRTOS defined basic command server.  This demonstrates use
-    of the lwIP sockets API. */
-    xTaskCreate( vBasicSocketsCommandInterpreterTask, ( int8_t * ) "CmdInt", configCOMMAND_INTERPRETER_STACK_SIZE, NULL, configCOMMAND_INTERPRETER_TASK_PRIORITY, NULL );
+	/* Create the FreeRTOS defined basic command server.  This demonstrates use
+	of the lwIP sockets API. */
+	xTaskCreate( vBasicSocketsCommandInterpreterTask, ( int8_t * ) "CmdInt", configCOMMAND_INTERPRETER_STACK_SIZE, NULL, configCOMMAND_INTERPRETER_TASK_PRIORITY, NULL );
 }
 /*-----------------------------------------------------------*/
 
@@ -147,28 +147,28 @@ static unsigned int uiUpdateCount = 0;
 static char cUpdateString[ 200 ];
 extern char *pcMainGetTaskStatusMessage( void );
 
-    /* Unused parameter. */
-    ( void ) iBufferLength;
+	/* Unused parameter. */
+	( void ) iBufferLength;
 
-    /* The SSI handler function that generates text depending on the index of
-    the SSI tag encountered. */
-    
-    switch( iIndex )
-    {
-        case ssiTASK_STATS_INDEX :
-            vTaskList( ( int8_t * ) pcBuffer );
-            break;
+	/* The SSI handler function that generates text depending on the index of
+	the SSI tag encountered. */
+	
+	switch( iIndex )
+	{
+		case ssiTASK_STATS_INDEX :
+			vTaskList( ( int8_t * ) pcBuffer );
+			break;
 
-        case ssiRUN_TIME_STATS_INDEX :
-            vTaskGetRunTimeStats( ( int8_t * ) pcBuffer );
-            break;
-    }
+		case ssiRUN_TIME_STATS_INDEX :
+			vTaskGetRunTimeStats( ( int8_t * ) pcBuffer );
+			break;
+	}
 
-    /* Include a count of the number of times an SSI function has been executed
-    in the returned string. */
-    uiUpdateCount++;
-    sprintf( cUpdateString, "\r\n\r\nRefresh count %u", uiUpdateCount );
-    strcat( pcBuffer, cUpdateString );
-    return strlen( pcBuffer );
+	/* Include a count of the number of times an SSI function has been executed
+	in the returned string. */
+	uiUpdateCount++;
+	sprintf( cUpdateString, "\r\n\r\nRefresh count %u", uiUpdateCount );
+	strcat( pcBuffer, cUpdateString );
+	return strlen( pcBuffer );
 }
 
