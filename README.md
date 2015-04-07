@@ -1,3 +1,10 @@
+This project is now terminated due to problems with the Texas Instruments license.    
+We released a GPL _incompatible_ version instead @iot_tiva_template
+https://github.com/Lindem-Data-Acquisition-AS/iot_tiva_template
+
+Please contact us if there is any interest in continuing our work for a GPL compatible port for TM4C129 with lwIP.
+
+    
     ***************************************************************************************
     LICENSE
     ***************************************************************************************
